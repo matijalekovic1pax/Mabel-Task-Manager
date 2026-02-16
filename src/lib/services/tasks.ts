@@ -23,6 +23,8 @@ export async function createTask(data: TaskInput, userId: string) {
       priority: data.priority,
       deadline: data.deadline ?? null,
       submitted_by: userId,
+      assigned_to: data.assigned_to ?? null,
+      status: data.assigned_to ? 'delegated' : 'pending',
     })
     .select()
     .single()

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,16 +10,29 @@ import { CATEGORY_CONFIG, PRIORITY_CONFIG } from '@/lib/utils/constants'
 import { taskSchema } from '@/lib/validations/task'
 import { createTask } from '@/lib/services/tasks'
 import { createNotification } from '@/lib/services/notifications'
+import { getActiveTeamMembers } from '@/lib/services/team'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase/client'
+import { hasAdminAccess } from '@/lib/utils/roles'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import type { Profile } from '@/lib/types'
 
 export function TaskForm() {
   const { profile } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [teamMembers, setTeamMembers] = useState<Profile[]>([])
+  const [assignedTo, setAssignedTo] = useState<string | null>(null)
+  const isAdmin = hasAdminAccess(profile?.role)
+
+  useEffect(() => {
+    if (!isAdmin) return
+    getActiveTeamMembers()
+      .then(setTeamMembers)
+      .catch(() => {})
+  }, [isAdmin])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -32,6 +45,7 @@ export function TaskForm() {
       category: formData.get('category') as string,
       priority: formData.get('priority') as string,
       deadline: (formData.get('deadline') as string) || null,
+      assigned_to: assignedTo,
     }
 
     const validated = taskSchema.safeParse(raw)
@@ -66,6 +80,17 @@ export function TaskForm() {
               }),
             ),
         )
+      }
+
+      // Notify the assignee if someone was assigned
+      if (validated.data.assigned_to && validated.data.assigned_to !== profile.id) {
+        await createNotification({
+          recipient_id: validated.data.assigned_to,
+          type: 'task_delegated',
+          title: 'Task assigned to you',
+          message: `You've been assigned: ${validated.data.title}`,
+          task_id: task.id,
+        })
       }
 
       toast.success('Task submitted successfully')
@@ -116,6 +141,22 @@ export function TaskForm() {
               </Select>
             </div>
           </div>
+          {isAdmin && teamMembers.length > 0 && (
+            <div className="space-y-2">
+              <Label>Assign To (optional)</Label>
+              <Select value={assignedTo ?? 'unassigned'} onValueChange={(v) => setAssignedTo(v === 'unassigned' ? null : v)}>
+                <SelectTrigger><SelectValue placeholder="Leave unassigned" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {teamMembers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.full_name}{m.department ? ` · ${m.department}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="deadline">Deadline (optional)</Label>
             <Input id="deadline" name="deadline" type="datetime-local" />

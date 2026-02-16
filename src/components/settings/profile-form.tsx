@@ -26,7 +26,7 @@ export function ProfileForm() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name, department: department || null })
+        .update({ full_name, department: department === 'none' ? null : department })
         .eq('id', profile.id)
 
       if (error) throw error
@@ -55,10 +55,10 @@ export function ProfileForm() {
           </div>
           <div className="space-y-2">
             <Label>Department</Label>
-            <Select name="department" defaultValue={profile.department ?? ''}>
+            <Select name="department" defaultValue={profile.department ?? 'none'}>
               <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {DEPARTMENTS.map((d) => (
                   <SelectItem key={d} value={d}>{d}</SelectItem>
                 ))}

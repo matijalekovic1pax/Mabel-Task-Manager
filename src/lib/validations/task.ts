@@ -23,6 +23,7 @@ export const taskSchema = z.object({
   ]),
   priority: z.enum(['urgent', 'high', 'normal', 'low']),
   deadline: z.string().nullable().optional(),
+  assigned_to: z.string().uuid().nullable().optional(),
 })
 
 export type TaskInput = z.infer<typeof taskSchema>

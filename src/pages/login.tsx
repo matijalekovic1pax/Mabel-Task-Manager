@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
 
 export function LoginPage() {
-  const { user, profile, loading, signInWithGoogle } = useAuth()
+  const { user, profile, loading, authState, signInWithGoogle } = useAuth()
+  const [searchParams] = useSearchParams()
   const [signingIn, setSigningIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isSessionExpired = searchParams.get('reason') === 'session_expired'
 
   if (loading) {
     return (
@@ -22,7 +24,7 @@ export function LoginPage() {
     return <Navigate to="/" replace />
   }
 
-  if (user && !profile) {
+  if (authState === 'access_denied' || (user && !profile)) {
     return <Navigate to="/access-denied" replace />
   }
 
@@ -50,6 +52,11 @@ export function LoginPage() {
           <CardDescription className="mt-1">Sign in with your company Google account to get started.</CardDescription>
         </CardHeader>
         <CardContent className="pt-4 space-y-3">
+          {isSessionExpired && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              Session expired. Please sign in again.
+            </div>
+          )}
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}

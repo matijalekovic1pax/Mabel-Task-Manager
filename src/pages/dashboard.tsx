@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { getCeoQueue, getMyAssignedTasks, getMySubmittedTasks } from '@/lib/services/tasks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,10 +8,19 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TaskCard } from '@/components/tasks/task-card'
 import { getGreeting, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG } from '@/lib/utils/constants'
-import { PlusCircle, Clock, AlertTriangle, CheckCircle2, ListTodo } from 'lucide-react'
+import {
+  PlusCircle,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  ListTodo,
+  Loader2,
+} from 'lucide-react'
 import { hasAdminAccess } from '@/lib/utils/roles'
 import type { TaskWithSubmitter } from '@/lib/types'
 import { supabase } from '@/lib/supabase/client'
+import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
+import { createRequestGuard, withTimeout } from '@/lib/utils/async'
 
 const CATEGORY_COLORS: Record<string, string> = {
   financial: 'bg-emerald-50 border-emerald-200 text-emerald-700',
@@ -23,6 +32,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 const FINAL_STATUSES = ['approved', 'rejected', 'resolved']
+const REFRESH_DEBOUNCE_MS = 300
 
 function mergeTasks(...lists: TaskWithSubmitter[][]): TaskWithSubmitter[] {
   const byId = new Map<string, TaskWithSubmitter>()
@@ -39,49 +49,100 @@ function mergeTasks(...lists: TaskWithSubmitter[][]): TaskWithSubmitter[] {
 }
 
 export function DashboardPage() {
-  const { profile } = useAuth()
+  const navigate = useNavigate()
+  const { profile, signOut } = useAuth()
   const isCeo = hasAdminAccess(profile?.role)
 
   const [tasks, setTasks] = useState<TaskWithSubmitter[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
-    if (!profile) return
+  const guardRef = useRef(createRequestGuard())
+  const refreshTimerRef = useRef<number | null>(null)
+  const hasLoadedRef = useRef(false)
+
+  const refresh = useCallback(async (options?: { background?: boolean }) => {
+    const requestId = guardRef.current.next()
+    const background = options?.background ?? false
+
+    if (background || hasLoadedRef.current) {
+      setRefreshing(true)
+    } else {
+      setLoading(true)
+    }
+
+    if (!profile) {
+      if (!guardRef.current.isLatest(requestId)) return
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
+
+    setError(null)
 
     try {
-      if (isCeo) {
-        const data = await getCeoQueue()
-        setTasks(data)
-      } else {
-        const [submitted, assigned] = await Promise.all([
-          getMySubmittedTasks(profile.id),
-          getMyAssignedTasks(profile.id),
-        ])
-        setTasks(mergeTasks(submitted, assigned))
+      const fetchPromise = isCeo
+        ? getCeoQueue()
+        : Promise.all([
+            getMySubmittedTasks(profile.id),
+            getMyAssignedTasks(profile.id),
+          ]).then(([submitted, assigned]) => mergeTasks(submitted, assigned))
+
+      const data = await withTimeout(fetchPromise)
+      if (!guardRef.current.isLatest(requestId)) return
+
+      setTasks(data)
+      hasLoadedRef.current = true
+    } catch (err) {
+      if (!guardRef.current.isLatest(requestId)) return
+
+      if (isSessionExpiredError(err)) {
+        await signOut().catch(() => {})
+        navigate('/login?reason=session_expired', { replace: true })
+        return
       }
-    } catch {
-      // silently fail
+
+      setError(getErrorMessage(err, 'Failed to load dashboard data.'))
     } finally {
-      setLoading(false)
+      if (guardRef.current.isLatest(requestId)) {
+        setLoading(false)
+        setRefreshing(false)
+      }
     }
-  }, [profile, isCeo])
+  }, [isCeo, navigate, profile, signOut])
+
+  const scheduleRefresh = useCallback((options?: { background?: boolean }) => {
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current)
+    }
+
+    refreshTimerRef.current = window.setTimeout(() => {
+      void refresh(options)
+    }, REFRESH_DEBOUNCE_MS)
+  }, [refresh])
 
   useEffect(() => {
     void refresh()
   }, [refresh])
 
   useEffect(() => {
+    if (!profile) return
+
     const channel = supabase
-      .channel('dashboard-tasks')
+      .channel(`dashboard-tasks-${profile.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-        void refresh()
+        scheduleRefresh({ background: true })
       })
       .subscribe()
 
     return () => {
+      if (refreshTimerRef.current !== null) {
+        window.clearTimeout(refreshTimerRef.current)
+      }
       supabase.removeChannel(channel)
     }
-  }, [refresh])
+  }, [profile, scheduleRefresh])
 
   const needsDecision = tasks.filter((t) => (
     t.status === 'pending'
@@ -124,6 +185,20 @@ export function DashboardPage() {
     )
   }
 
+  if (error && tasks.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Dashboard unavailable</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <Button onClick={() => void refresh()}>Retry</Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -144,6 +219,22 @@ export function DashboardPage() {
           </Button>
         )}
       </div>
+
+      {refreshing && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Syncing latest updates...
+        </div>
+      )}
+
+      {error && tasks.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" onClick={() => void refresh()}>
+            Retry
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-amber-400 shadow-sm">

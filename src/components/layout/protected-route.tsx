@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { Loader2 } from 'lucide-react'
 
 export function ProtectedRoute({ children, requireRole }: { children: React.ReactNode; requireRole?: 'ceo' | 'team_member' }) {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, authState } = useAuth()
 
   if (loading) {
     return (
@@ -13,8 +13,12 @@ export function ProtectedRoute({ children, requireRole }: { children: React.Reac
     )
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />
+  if (authState === 'session_expired' || authState === 'unauthenticated' || !user) {
+    return <Navigate to="/login?reason=session_expired" replace />
+  }
+
+  if (authState === 'access_denied') {
+    return <Navigate to="/access-denied" replace />
   }
 
   if (!profile) {

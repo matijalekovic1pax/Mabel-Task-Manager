@@ -1,14 +1,20 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { getTasks, getMyAssignedTasks, getMySubmittedTasks } from '@/lib/services/tasks'
+import {
+  getTasks,
+  getMyAssignedTasks,
+  getMySubmittedTasks,
+} from '@/lib/services/tasks'
 import { TaskCard } from '@/components/tasks/task-card'
 import { TaskFilters } from '@/components/tasks/task-filters'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PlusCircle } from 'lucide-react'
+import { PlusCircle, Loader2 } from 'lucide-react'
 import { hasAdminAccess } from '@/lib/utils/roles'
 import { supabase } from '@/lib/supabase/client'
+import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
+import { createRequestGuard, withTimeout } from '@/lib/utils/async'
 import type { TaskWithSubmitter, TaskFilters as TF } from '@/lib/types'
 
 const SORT_MAP: Record<string, { sortBy: TF['sortBy']; sortOrder: TF['sortOrder'] }> = {
@@ -24,6 +30,8 @@ const PRIORITY_ORDER: Record<string, number> = {
   normal: 2,
   low: 3,
 }
+
+const REFRESH_DEBOUNCE_MS = 300
 
 function mergeAndSortTasks(
   submitted: TaskWithSubmitter[],
@@ -59,13 +67,34 @@ function mergeAndSortTasks(
 }
 
 export function TasksPage() {
-  const { profile } = useAuth()
+  const navigate = useNavigate()
+  const { profile, signOut } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [tasks, setTasks] = useState<TaskWithSubmitter[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
-    if (!profile) return
+  const guardRef = useRef(createRequestGuard())
+  const refreshTimerRef = useRef<number | null>(null)
+  const hasLoadedRef = useRef(false)
+
+  const refresh = useCallback(async (options?: { background?: boolean }) => {
+    const requestId = guardRef.current.next()
+    const background = options?.background ?? false
+
+    if (background || hasLoadedRef.current) {
+      setRefreshing(true)
+    } else {
+      setLoading(true)
+    }
+
+    if (!profile) {
+      if (!guardRef.current.isLatest(requestId)) return
+      setLoading(false)
+      setRefreshing(false)
+      return
+    }
 
     const status = searchParams.get('status') || undefined
     const category = searchParams.get('category') || undefined
@@ -84,47 +113,80 @@ export function TasksPage() {
       sortOrder,
     }
 
+    setError(null)
+
     try {
+      let data: TaskWithSubmitter[]
+
       if (hasAdminAccess(profile.role)) {
-        const data = await getTasks(baseFilters)
-        setTasks(data)
+        data = await withTimeout(getTasks(baseFilters))
       } else if (view === 'submitted') {
-        const submitted = await getMySubmittedTasks(profile.id, baseFilters)
-        setTasks(submitted)
+        data = await withTimeout(getMySubmittedTasks(profile.id, baseFilters))
       } else if (view === 'assigned') {
-        const assigned = await getMyAssignedTasks(profile.id, baseFilters)
-        setTasks(assigned)
+        data = await withTimeout(getMyAssignedTasks(profile.id, baseFilters))
       } else {
-        const [submitted, assigned] = await Promise.all([
-          getMySubmittedTasks(profile.id, baseFilters),
-          getMyAssignedTasks(profile.id, baseFilters),
-        ])
-        setTasks(mergeAndSortTasks(submitted, assigned, sortBy, sortOrder))
+        const [submitted, assigned] = await withTimeout(
+          Promise.all([
+            getMySubmittedTasks(profile.id, baseFilters),
+            getMyAssignedTasks(profile.id, baseFilters),
+          ]),
+        )
+        data = mergeAndSortTasks(submitted, assigned, sortBy, sortOrder)
       }
-    } catch {
-      // silently fail
+
+      if (!guardRef.current.isLatest(requestId)) return
+
+      setTasks(data)
+      hasLoadedRef.current = true
+    } catch (err) {
+      if (!guardRef.current.isLatest(requestId)) return
+
+      if (isSessionExpiredError(err)) {
+        await signOut().catch(() => {})
+        navigate('/login?reason=session_expired', { replace: true })
+        return
+      }
+
+      setError(getErrorMessage(err, 'Failed to load tasks.'))
     } finally {
-      setLoading(false)
+      if (guardRef.current.isLatest(requestId)) {
+        setLoading(false)
+        setRefreshing(false)
+      }
     }
-  }, [profile, searchParams])
+  }, [navigate, profile, searchParams, signOut])
+
+  const scheduleRefresh = useCallback((options?: { background?: boolean }) => {
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current)
+    }
+
+    refreshTimerRef.current = window.setTimeout(() => {
+      void refresh(options)
+    }, REFRESH_DEBOUNCE_MS)
+  }, [refresh])
 
   useEffect(() => {
-    setLoading(true)
     void refresh()
   }, [refresh])
 
   useEffect(() => {
+    if (!profile) return
+
     const channel = supabase
-      .channel('tasks-list')
+      .channel(`tasks-list-${profile.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-        void refresh()
+        scheduleRefresh({ background: true })
       })
       .subscribe()
 
     return () => {
+      if (refreshTimerRef.current !== null) {
+        window.clearTimeout(refreshTimerRef.current)
+      }
       supabase.removeChannel(channel)
     }
-  }, [refresh])
+  }, [profile, scheduleRefresh])
 
   function updateView(view: 'all' | 'submitted' | 'assigned') {
     setSearchParams((prev) => {
@@ -151,6 +213,22 @@ export function TasksPage() {
         )}
       </div>
 
+      {refreshing && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Syncing latest updates...
+        </div>
+      )}
+
+      {error && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" onClick={() => void refresh()}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {!hasAdminAccess(profile?.role) && (
         <div className="flex flex-wrap items-center gap-2">
           <Button variant={currentView === 'all' ? 'default' : 'outline'} size="sm" onClick={() => updateView('all')}>
@@ -170,6 +248,13 @@ export function TasksPage() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+      ) : error && tasks.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-12">
+          <p className="text-muted-foreground">Could not load tasks.</p>
+          <Button variant="outline" className="mt-3" onClick={() => void refresh()}>
+            Retry
+          </Button>
         </div>
       ) : tasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-12">

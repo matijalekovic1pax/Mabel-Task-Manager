@@ -1,38 +1,75 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { getNotifications, getUnreadCount, markAsRead } from '@/lib/services/notifications'
+import {
+  getNotifications,
+  getUnreadCount,
+  markAsRead,
+} from '@/lib/services/notifications'
 import { supabase } from '@/lib/supabase/client'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Bell } from 'lucide-react'
 import { NotificationItem } from './notification-item'
 import type { Notification } from '@/lib/types'
+import { isSessionExpiredError } from '@/lib/supabase/errors'
+import { createRequestGuard, withTimeout } from '@/lib/utils/async'
+
+const REFRESH_DEBOUNCE_MS = 300
 
 export function NotificationBell() {
-  const { profile } = useAuth()
+  const { profile, signOut } = useAuth()
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [open, setOpen] = useState(false)
 
+  const guardRef = useRef(createRequestGuard())
+  const refreshTimerRef = useRef<number | null>(null)
+
   const refresh = useCallback(async () => {
-    if (!profile) return
+    const requestId = guardRef.current.next()
+
+    if (!profile) {
+      if (!guardRef.current.isLatest(requestId)) return
+      setNotifications([])
+      setUnreadCount(0)
+      return
+    }
+
     try {
-      const [items, count] = await Promise.all([
-        getNotifications(profile.id, { limit: 5 }),
-        getUnreadCount(profile.id),
-      ])
+      const [items, count] = await withTimeout(
+        Promise.all([
+          getNotifications(profile.id, { limit: 5 }),
+          getUnreadCount(profile.id),
+        ]),
+      )
+
+      if (!guardRef.current.isLatest(requestId)) return
+
       setNotifications(items)
       setUnreadCount(count)
-    } catch {
-      // silently fail
+    } catch (err) {
+      if (!guardRef.current.isLatest(requestId)) return
+
+      if (isSessionExpiredError(err)) {
+        await signOut().catch(() => {})
+        navigate('/login?reason=session_expired', { replace: true })
+      }
     }
-  }, [profile])
+  }, [navigate, profile, signOut])
+
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current)
+    }
+
+    refreshTimerRef.current = window.setTimeout(() => {
+      void refresh()
+    }, REFRESH_DEBOUNCE_MS)
+  }, [refresh])
 
   useEffect(() => {
-    if (!profile) return
-
     const timeoutId = window.setTimeout(() => {
       void refresh()
     }, 0)
@@ -40,32 +77,44 @@ export function NotificationBell() {
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [profile, refresh])
+  }, [refresh])
 
   // Realtime subscription for new notifications
   useEffect(() => {
     if (!profile) return
 
     const channel = supabase
-      .channel('notifications-bell')
+      .channel(`notifications-bell-${profile.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${profile.id}` },
-        () => { void refresh() },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `recipient_id=eq.${profile.id}`,
+        },
+        () => {
+          scheduleRefresh()
+        },
       )
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
-  }, [profile, refresh])
+    return () => {
+      if (refreshTimerRef.current !== null) {
+        window.clearTimeout(refreshTimerRef.current)
+      }
+      supabase.removeChannel(channel)
+    }
+  }, [profile, scheduleRefresh])
 
   async function handleClick(notification: Notification) {
     if (!notification.is_read) {
       try {
-        await markAsRead(notification.id)
+        await withTimeout(markAsRead(notification.id))
         setUnreadCount((c) => Math.max(0, c - 1))
         setNotifications((prev) => prev.map((n) => n.id === notification.id ? { ...n, is_read: true } : n))
       } catch {
-        // ignore
+        // Ignore optimistic update failures here; list refresh will reconcile state.
       }
     }
     setOpen(false)
@@ -107,7 +156,10 @@ export function NotificationBell() {
             variant="ghost"
             size="sm"
             className="w-full text-xs"
-            onClick={() => { setOpen(false); navigate('/notifications') }}
+            onClick={() => {
+              setOpen(false)
+              navigate('/notifications')
+            }}
           >
             View all notifications
           </Button>

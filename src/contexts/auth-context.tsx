@@ -10,14 +10,26 @@ import type { ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/lib/types'
 import { supabase } from '@/lib/supabase/client'
+import {
+  isProfileMissingError,
+  isSessionExpiredError,
+} from '@/lib/supabase/errors'
 
 // ---------------------------------------------------------------------------
 // Context shape
 // ---------------------------------------------------------------------------
 
+type AuthState =
+  | 'loading'
+  | 'authenticated'
+  | 'unauthenticated'
+  | 'access_denied'
+  | 'session_expired'
+
 interface AuthContextValue {
   user: User | null
   profile: Profile | null
+  authState: AuthState
   loading: boolean
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
@@ -32,15 +44,10 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const loadingResolved = useRef(false)
-
-  const markReady = useCallback(() => {
-    if (!loadingResolved.current) {
-      loadingResolved.current = true
-      setLoading(false)
-    }
-  }, [])
+  const [authState, setAuthState] = useState<AuthState>('loading')
+  const initialized = useRef(false)
+  const sessionExpiredRef = useRef(false)
+  const loading = authState === 'loading'
 
   // Fetch the profile row for the given user id.
   const fetchProfile = useCallback(async (userId: string) => {
@@ -49,18 +56,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
       if (error) {
+        if (isSessionExpiredError(error)) {
+          return { profile: null, state: 'session_expired' as const }
+        }
+
+        if (isProfileMissingError(error)) {
+          return { profile: null, state: 'access_denied' as const }
+        }
+
         console.error('Failed to fetch profile:', error.message)
-        setProfile(null)
-        return
+        return { profile: null, state: 'access_denied' as const }
       }
 
-      setProfile(data)
+      if (!data) {
+        return { profile: null, state: 'access_denied' as const }
+      }
+
+      return { profile: data, state: 'authenticated' as const }
     } catch (err) {
       console.error('Profile fetch error:', err)
-      setProfile(null)
+      if (isSessionExpiredError(err)) {
+        return { profile: null, state: 'session_expired' as const }
+      }
+      return { profile: null, state: 'access_denied' as const }
     }
   }, [])
 
@@ -69,27 +90,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        sessionExpiredRef.current = false
         setUser(session.user)
-        await fetchProfile(session.user.id)
+
+        const result = await fetchProfile(session.user.id)
+        if (result.state === 'session_expired') {
+          sessionExpiredRef.current = true
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+          setUser(null)
+          setProfile(null)
+          setAuthState('session_expired')
+        } else {
+          setProfile(result.profile)
+          setAuthState(result.state)
+        }
       } else {
         setUser(null)
         setProfile(null)
+        setAuthState(
+          sessionExpiredRef.current ? 'session_expired' : 'unauthenticated',
+        )
       }
-      markReady()
+
+      initialized.current = true
     })
 
-    // Safety timeout — if onAuthStateChange never fires (broken client, network
+    // Safety timeout - if onAuthStateChange never fires (broken client, network
     // issue, corrupt localStorage), stop loading after 5 seconds so the user
     // isn't stuck on a blank screen forever.
     const timeout = setTimeout(() => {
-      if (!loadingResolved.current) {
-        console.warn('Auth initialization timed out — clearing session')
+      if (!initialized.current) {
+        console.warn('Auth initialization timed out - clearing session')
         supabase.auth.signOut().catch(() => {})
         setUser(null)
         setProfile(null)
-        markReady()
+        setAuthState('unauthenticated')
+        initialized.current = true
       }
     }, 5000)
 
@@ -97,10 +135,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe()
       clearTimeout(timeout)
     }
-  }, [fetchProfile, markReady])
+  }, [fetchProfile])
 
-  // Sign in — always redirects to Google OAuth
+  // Sign in - always redirects to Google OAuth
   const signInWithGoogle = useCallback(async () => {
+    sessionExpiredRef.current = false
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -116,6 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Sign out
   const signOut = useCallback(async () => {
+    sessionExpiredRef.current = false
+
     try {
       // Local scope avoids logout failures caused by upstream token revoke issues.
       const { error } = await supabase.auth.signOut({ scope: 'local' })
@@ -127,12 +169,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null)
       setProfile(null)
+      setAuthState('unauthenticated')
     }
   }, [])
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, signInWithGoogle, signOut }}
+      value={{ user, profile, authState, loading, signInWithGoogle, signOut }}
     >
       {children}
     </AuthContext.Provider>

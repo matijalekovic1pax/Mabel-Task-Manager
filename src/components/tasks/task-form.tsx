@@ -13,7 +13,6 @@ import { createNotification } from '@/lib/services/notifications'
 import { getActiveTeamMembers } from '@/lib/services/team'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase/client'
-import { hasAdminAccess } from '@/lib/utils/roles'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Profile } from '@/lib/types'
@@ -25,14 +24,11 @@ export function TaskForm() {
   const [error, setError] = useState<string | null>(null)
   const [teamMembers, setTeamMembers] = useState<Profile[]>([])
   const [assignedTo, setAssignedTo] = useState<string | null>(null)
-  const isAdmin = hasAdminAccess(profile?.role)
-
   useEffect(() => {
-    if (!isAdmin) return
     getActiveTeamMembers()
       .then(setTeamMembers)
       .catch(() => {})
-  }, [isAdmin])
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -141,22 +137,20 @@ export function TaskForm() {
               </Select>
             </div>
           </div>
-          {isAdmin && teamMembers.length > 0 && (
-            <div className="space-y-2">
-              <Label>Assign To (optional)</Label>
-              <Select value={assignedTo ?? 'unassigned'} onValueChange={(v) => setAssignedTo(v === 'unassigned' ? null : v)}>
-                <SelectTrigger><SelectValue placeholder="Leave unassigned" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {teamMembers.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.full_name}{m.department ? ` · ${m.department}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label>Assign To (optional)</Label>
+            <Select value={assignedTo ?? 'unassigned'} onValueChange={(v) => setAssignedTo(v === 'unassigned' ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Leave unassigned" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {teamMembers.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.full_name}{m.department ? ` · ${m.department}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="deadline">Deadline (optional)</Label>
             <Input id="deadline" name="deadline" type="datetime-local" />

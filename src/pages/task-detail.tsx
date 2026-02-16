@@ -45,10 +45,8 @@ export function TaskDetailPage() {
   useEffect(() => { refresh() }, [refresh])
 
   useEffect(() => {
-    if (isCeo) {
-      getActiveTeamMembers().then(setTeamMembers).catch(() => {})
-    }
-  }, [isCeo])
+    getActiveTeamMembers().then(setTeamMembers).catch(() => {})
+  }, [])
 
   if (loading) {
     return (
@@ -73,7 +71,7 @@ export function TaskDetailPage() {
   }
 
   const canResolve = isCeo && !STATUS_CONFIG[task.status].isFinal
-  const canDelegate = isCeo && task.status === 'pending'
+  const canDelegate = isCeo && !STATUS_CONFIG[task.status].isFinal
   const overdue = task.deadline ? isOverdue(task.deadline) && !STATUS_CONFIG[task.status].isFinal : false
 
   return (

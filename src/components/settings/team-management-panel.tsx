@@ -64,8 +64,8 @@ export function TeamManagementPanel() {
       await removeAllowedEmail(emailId)
       toast.success('Email removed')
       refresh()
-    } catch {
-      toast.error('Failed to remove email')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove email')
     }
   }
 
@@ -74,8 +74,8 @@ export function TeamManagementPanel() {
       await toggleMemberActive(memberId, !currentActive)
       toast.success(currentActive ? 'Member deactivated' : 'Member activated')
       refresh()
-    } catch {
-      toast.error('Failed to update member status')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update member status')
     }
   }
 

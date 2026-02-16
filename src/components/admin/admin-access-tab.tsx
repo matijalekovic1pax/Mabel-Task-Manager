@@ -51,8 +51,8 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
       await removeAllowedEmail(emailId)
       toast.success('Email removed')
       onRefresh()
-    } catch {
-      toast.error('Failed to remove email')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove email')
     }
   }
 
@@ -61,8 +61,8 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
       await updateAllowedEmailRole(emailId, newRole as 'ceo' | 'team_member' | 'super_admin')
       toast.success('Role updated')
       onRefresh()
-    } catch {
-      toast.error('Failed to update role')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update role')
     }
   }
 

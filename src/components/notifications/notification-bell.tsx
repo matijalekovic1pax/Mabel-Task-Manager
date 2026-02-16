@@ -16,6 +16,7 @@ import { isSessionExpiredError } from '@/lib/supabase/errors'
 import { createRequestGuard, withTimeout } from '@/lib/utils/async'
 
 const REFRESH_DEBOUNCE_MS = 300
+const FALLBACK_POLL_MS = 15000
 
 export function NotificationBell() {
   const { profile, signOut } = useAuth()
@@ -83,6 +84,21 @@ export function NotificationBell() {
   useEffect(() => {
     if (!profile) return
 
+    let pollIntervalId: number | null = null
+
+    const startPolling = () => {
+      if (pollIntervalId !== null) return
+      pollIntervalId = window.setInterval(() => {
+        scheduleRefresh()
+      }, FALLBACK_POLL_MS)
+    }
+
+    const stopPolling = () => {
+      if (pollIntervalId === null) return
+      window.clearInterval(pollIntervalId)
+      pollIntervalId = null
+    }
+
     const channel = supabase
       .channel(`notifications-bell-${profile.id}`)
       .on(
@@ -97,12 +113,40 @@ export function NotificationBell() {
           scheduleRefresh()
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          stopPolling()
+          return
+        }
+
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          startPolling()
+        }
+      })
+
+    const handleOnline = () => {
+      stopPolling()
+      scheduleRefresh()
+    }
+
+    const handleOffline = () => {
+      startPolling()
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    if (!navigator.onLine) {
+      startPolling()
+    }
 
     return () => {
       if (refreshTimerRef.current !== null) {
         window.clearTimeout(refreshTimerRef.current)
       }
+      stopPolling()
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
       supabase.removeChannel(channel)
     }
   }, [profile, scheduleRefresh])

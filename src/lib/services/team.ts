@@ -71,12 +71,20 @@ export async function addAllowedEmail(
 // ---------------------------------------------------------------------------
 
 export async function removeAllowedEmail(emailId: string) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('allowed_emails')
     .delete()
     .eq('id', emailId)
+    .select('id')
+    .limit(1)
 
   if (error) throw error
+
+  if (!data || data.length === 0) {
+    throw new Error('Delete was blocked. You may not have permission to remove this user.')
+  }
+
+  return data[0]
 }
 
 // ---------------------------------------------------------------------------

@@ -42,7 +42,8 @@ export function TeamManagementPanel() {
   async function handleAddEmail(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!profile) return
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     const email = formData.get('email') as string
     const role = (formData.get('role') as string) || 'team_member'
 
@@ -50,7 +51,7 @@ export function TeamManagementPanel() {
     try {
       await addAllowedEmail(email, role as 'ceo' | 'team_member' | 'super_admin', profile.id)
       toast.success('Email added to allow list')
-      e.currentTarget.reset()
+      form.reset()
       refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add email')

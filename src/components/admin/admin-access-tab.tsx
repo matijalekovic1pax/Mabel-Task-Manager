@@ -29,7 +29,8 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
 
   async function handleAddEmail(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     const email = formData.get('email') as string
     const role = (formData.get('role') as string) || 'team_member'
 
@@ -37,7 +38,7 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
     try {
       await addAllowedEmail(email, role as 'ceo' | 'team_member' | 'super_admin', currentUserId)
       toast.success('Email added to allow list')
-      e.currentTarget.reset()
+      form.reset()
       onRefresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add email')

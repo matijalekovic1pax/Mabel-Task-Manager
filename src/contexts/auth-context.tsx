@@ -15,8 +15,8 @@ import { supabase } from '@/lib/supabase/client'
 // the frontend can be verified independently.
 // ---------------------------------------------------------------------------
 
-const isDemo = !import.meta.env.VITE_SUPABASE_URL
-const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL?.toLowerCase() ?? ''
+const isDemo = !import.meta.env.SUPABASE_URL
+const SUPER_ADMIN_EMAIL = import.meta.env.SUPER_ADMIN_EMAIL?.toLowerCase() ?? ''
 
 const DEMO_USER: User = {
   id: 'demo-user-id',

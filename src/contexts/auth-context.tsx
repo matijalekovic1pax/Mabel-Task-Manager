@@ -116,15 +116,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Sign out
   const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut()
+    try {
+      // Local scope avoids logout failures caused by upstream token revoke issues.
+      const { error } = await supabase.auth.signOut({ scope: 'local' })
 
-    if (error) {
-      console.error('Sign-out error:', error.message)
-      throw error
+      if (error) {
+        console.error('Sign-out error:', error.message)
+        throw error
+      }
+    } finally {
+      setUser(null)
+      setProfile(null)
     }
-
-    setUser(null)
-    setProfile(null)
   }, [])
 
   return (

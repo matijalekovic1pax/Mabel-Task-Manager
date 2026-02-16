@@ -1,9 +1,12 @@
 import { NavLink } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { hasAdminAccess } from '@/lib/utils/roles'
 import { LayoutDashboard, ListTodo, PlusCircle, Bell, Settings, Users, Shield, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { toast } from 'sonner'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, color: 'text-violet-500' },
@@ -19,8 +22,23 @@ const ceoOnlyItems = [
 ]
 
 export function Sidebar() {
+  const navigate = useNavigate()
   const { profile, signOut } = useAuth()
+  const [signingOut, setSigningOut] = useState(false)
   const isAdmin = hasAdminAccess(profile?.role)
+
+  async function handleSignOut() {
+    if (signingOut) return
+    setSigningOut(true)
+    try {
+      await signOut()
+      navigate('/login', { replace: true })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to sign out')
+    } finally {
+      setSigningOut(false)
+    }
+  }
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:border-r bg-card">
@@ -92,7 +110,13 @@ export function Sidebar() {
             <p className="truncate text-xs text-muted-foreground capitalize">{profile?.role?.replace('_', ' ')}</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" className="w-full justify-start gap-3 text-muted-foreground hover:text-red-600" onClick={signOut}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={signingOut}
+          className="w-full justify-start gap-3 text-muted-foreground hover:text-red-600"
+          onClick={handleSignOut}
+        >
           <LogOut className="h-4 w-4" />Sign Out
         </Button>
       </div>

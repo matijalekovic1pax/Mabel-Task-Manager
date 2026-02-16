@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Menu, LayoutDashboard, ListTodo, PlusCircle, Bell, Settings, Users, Shield, LogOut } from 'lucide-react'
 import { hasAdminAccess } from '@/lib/utils/roles'
+import { toast } from 'sonner'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, color: 'text-violet-500' },
@@ -16,9 +18,25 @@ const navItems = [
 ]
 
 export function MobileNav() {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const { profile, signOut } = useAuth()
   const isAdmin = hasAdminAccess(profile?.role)
+
+  async function handleSignOut() {
+    if (signingOut) return
+    setSigningOut(true)
+    try {
+      await signOut()
+      setOpen(false)
+      navigate('/login', { replace: true })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to sign out')
+    } finally {
+      setSigningOut(false)
+    }
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -101,7 +119,13 @@ export function MobileNav() {
           )}
         </nav>
         <div className="border-t p-3">
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-3 text-muted-foreground hover:text-red-600" onClick={signOut}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={signingOut}
+            className="w-full justify-start gap-3 text-muted-foreground hover:text-red-600"
+            onClick={handleSignOut}
+          >
             <LogOut className="h-4 w-4" />Sign Out
           </Button>
         </div>

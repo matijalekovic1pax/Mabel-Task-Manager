@@ -1,11 +1,6 @@
 -- ============================================================
--- Add super_admin role
--- ============================================================
-
-ALTER TYPE user_role ADD VALUE 'super_admin';
-
--- ============================================================
 -- Update RLS policies to grant super_admin full access
+-- Run AFTER 002_super_admin_enum.sql has been committed.
 -- ============================================================
 
 -- PROFILES: super_admin can update any profile

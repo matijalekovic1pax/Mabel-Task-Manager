@@ -87,34 +87,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Use onAuthStateChange as the single source of truth (Supabase recommended).
   // It fires INITIAL_SESSION on mount, then SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED.
+  //
+  // IMPORTANT: This callback must NOT make Supabase API calls directly.
+  // supabase-js v2.39+ holds an internal Navigator Lock during this callback.
+  // Any Supabase query (e.g. fetching a profile) needs that same lock to read
+  // the session token, which causes a deadlock that permanently blocks ALL
+  // subsequent Supabase requests.
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        sessionExpiredRef.current = false
-        setUser(session.user)
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      initialized.current = true
 
-        const result = await fetchProfile(session.user.id)
-        if (result.state === 'session_expired') {
-          sessionExpiredRef.current = true
-          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-          setUser(null)
-          setProfile(null)
-          setAuthState('session_expired')
-        } else {
-          setProfile(result.profile)
-          setAuthState(result.state)
-        }
-      } else {
+      if (!session?.user) {
         setUser(null)
         setProfile(null)
         setAuthState(
           sessionExpiredRef.current ? 'session_expired' : 'unauthenticated',
         )
+        return
       }
 
-      initialized.current = true
+      sessionExpiredRef.current = false
+      setUser(session.user)
+
+      // On TOKEN_REFRESHED the profile hasn't changed — skip the fetch.
+      if (event === 'TOKEN_REFRESHED') {
+        return
+      }
+
+      // For INITIAL_SESSION / SIGNED_IN, fetch the profile in a setTimeout
+      // so it runs AFTER the internal auth lock is released.
+      setTimeout(() => {
+        fetchProfile(session.user.id).then((result) => {
+          if (result.state === 'session_expired') {
+            sessionExpiredRef.current = true
+            supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+            setUser(null)
+            setProfile(null)
+            setAuthState('session_expired')
+          } else {
+            setProfile(result.profile)
+            setAuthState(result.state)
+          }
+        })
+      }, 0)
     })
 
     // Safety timeout - if onAuthStateChange never fires (broken client, network

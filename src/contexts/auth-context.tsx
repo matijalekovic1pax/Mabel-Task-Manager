@@ -10,34 +10,7 @@ import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/lib/types'
 import { supabase } from '@/lib/supabase/client'
 
-// ---------------------------------------------------------------------------
-// Demo mode — when no real Supabase URL is configured, auth is faked so
-// the frontend can be verified independently.
-// ---------------------------------------------------------------------------
-
-const isDemo = !import.meta.env.SUPABASE_URL
 const SUPER_ADMIN_EMAIL = import.meta.env.SUPER_ADMIN_EMAIL?.toLowerCase() ?? ''
-
-const DEMO_USER: User = {
-  id: 'demo-user-id',
-  email: 'mabel@company.com',
-  app_metadata: {},
-  user_metadata: { full_name: 'Mabel' },
-  aud: 'authenticated',
-  created_at: new Date().toISOString(),
-} as User
-
-const DEMO_PROFILE: Profile = {
-  id: 'demo-user-id',
-  email: 'mabel@company.com',
-  full_name: 'Mabel',
-  role: 'ceo',
-  avatar_url: null,
-  department: 'Architecture',
-  is_active: true,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-}
 
 // ---------------------------------------------------------------------------
 // Context shape
@@ -63,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   // Fetch the profile row for the given user id.
-  // If the user's email matches VITE_SUPER_ADMIN_EMAIL, promote to super_admin.
+  // If the user's email matches SUPER_ADMIN_EMAIL, promote to super_admin.
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
@@ -86,12 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Bootstrap: read the existing session on mount
   useEffect(() => {
-    if (isDemo) {
-      // Demo mode — skip real auth, just mark as not loading
-      setLoading(false)
-      return
-    }
-
     const initAuth = async () => {
       try {
         const {
@@ -130,14 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchProfile])
 
-  // Sign in
+  // Sign in — always redirects to Google OAuth
   const signInWithGoogle = useCallback(async () => {
-    if (isDemo) {
-      setUser(DEMO_USER)
-      setProfile(DEMO_PROFILE)
-      return
-    }
-
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -153,12 +114,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Sign out
   const signOut = useCallback(async () => {
-    if (isDemo) {
-      setUser(null)
-      setProfile(null)
-      return
-    }
-
     const { error } = await supabase.auth.signOut()
 
     if (error) {

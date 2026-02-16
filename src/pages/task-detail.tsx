@@ -17,6 +17,7 @@ import { TaskComments } from '@/components/tasks/task-comments'
 import { formatDateTime, formatDeadline, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
 import { ArrowLeft, Calendar, User, Clock, AlertTriangle } from 'lucide-react'
+import { hasAdminAccess } from '@/lib/utils/roles'
 import type { TaskWithDetails, Profile } from '@/lib/types'
 
 export function TaskDetailPage() {
@@ -27,7 +28,7 @@ export function TaskDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const isCeo = profile?.role === 'ceo'
+  const isCeo = hasAdminAccess(profile?.role)
 
   const refresh = useCallback(async () => {
     if (!id) return

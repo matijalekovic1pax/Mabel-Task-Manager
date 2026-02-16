@@ -48,7 +48,7 @@ export function TeamManagementPanel() {
 
     setAddingEmail(true)
     try {
-      await addAllowedEmail(email, role as 'ceo' | 'team_member', profile.id)
+      await addAllowedEmail(email, role as 'ceo' | 'team_member' | 'super_admin', profile.id)
       toast.success('Email added to allow list')
       e.currentTarget.reset()
       refresh()
@@ -108,6 +108,7 @@ export function TeamManagementPanel() {
                 <SelectContent>
                   <SelectItem value="team_member">Team Member</SelectItem>
                   <SelectItem value="ceo">CEO</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>

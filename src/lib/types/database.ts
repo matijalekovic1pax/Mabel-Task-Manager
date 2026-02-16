@@ -14,7 +14,7 @@ export type Database = {
           id: string
           email: string
           full_name: string
-          role: 'ceo' | 'team_member'
+          role: 'ceo' | 'team_member' | 'super_admin'
           avatar_url: string | null
           department: string | null
           is_active: boolean
@@ -25,7 +25,7 @@ export type Database = {
           id: string
           email: string
           full_name: string
-          role?: 'ceo' | 'team_member'
+          role?: 'ceo' | 'team_member' | 'super_admin'
           avatar_url?: string | null
           department?: string | null
           is_active?: boolean
@@ -36,7 +36,7 @@ export type Database = {
           id?: string
           email?: string
           full_name?: string
-          role?: 'ceo' | 'team_member'
+          role?: 'ceo' | 'team_member' | 'super_admin'
           avatar_url?: string | null
           department?: string | null
           is_active?: boolean
@@ -274,21 +274,21 @@ export type Database = {
         Row: {
           id: string
           email: string
-          role: 'ceo' | 'team_member'
+          role: 'ceo' | 'team_member' | 'super_admin'
           added_by: string | null
           created_at: string
         }
         Insert: {
           id?: string
           email: string
-          role?: 'ceo' | 'team_member'
+          role?: 'ceo' | 'team_member' | 'super_admin'
           added_by?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           email?: string
-          role?: 'ceo' | 'team_member'
+          role?: 'ceo' | 'team_member' | 'super_admin'
           added_by?: string | null
           created_at?: string
         }

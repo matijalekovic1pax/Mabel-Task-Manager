@@ -9,6 +9,7 @@ import { TaskCard } from '@/components/tasks/task-card'
 import { getGreeting } from '@/lib/utils/format'
 import { CATEGORY_CONFIG } from '@/lib/utils/constants'
 import { PlusCircle, Clock, AlertTriangle, CheckCircle2, ListTodo } from 'lucide-react'
+import { hasAdminAccess } from '@/lib/utils/roles'
 import type { TaskWithSubmitter } from '@/lib/types'
 import { supabase } from '@/lib/supabase/client'
 
@@ -23,7 +24,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function DashboardPage() {
   const { profile } = useAuth()
-  const isCeo = profile?.role === 'ceo'
+  const isCeo = hasAdminAccess(profile?.role)
 
   const [tasks, setTasks] = useState<TaskWithSubmitter[]>([])
   const [loading, setLoading] = useState(true)

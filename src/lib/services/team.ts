@@ -49,7 +49,7 @@ export async function getAllowedEmails() {
 
 export async function addAllowedEmail(
   email: string,
-  role: 'ceo' | 'team_member',
+  role: 'ceo' | 'team_member' | 'super_admin',
   addedBy: string,
 ) {
   const { data, error } = await supabase

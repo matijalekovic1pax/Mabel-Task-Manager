@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Menu, LayoutDashboard, ListTodo, PlusCircle, Bell, Settings, Users, LogOut } from 'lucide-react'
+import { hasAdminAccess } from '@/lib/utils/roles'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, color: 'text-violet-500' },
@@ -17,7 +18,7 @@ const navItems = [
 export function MobileNav() {
   const [open, setOpen] = useState(false)
   const { profile, signOut } = useAuth()
-  const isCeo = profile?.role === 'ceo'
+  const isAdmin = hasAdminAccess(profile?.role)
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -57,7 +58,7 @@ export function MobileNav() {
               )}
             </NavLink>
           ))}
-          {isCeo && (
+          {isAdmin && (
             <>
               <Separator className="my-2" />
               <NavLink

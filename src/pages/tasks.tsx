@@ -7,6 +7,7 @@ import { TaskFilters } from '@/components/tasks/task-filters'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PlusCircle } from 'lucide-react'
+import { hasAdminAccess } from '@/lib/utils/roles'
 import { supabase } from '@/lib/supabase/client'
 import type { TaskWithSubmitter, TaskFilters as TF } from '@/lib/types'
 
@@ -42,8 +43,8 @@ export function TasksPage() {
       sortOrder,
     }
 
-    // Team members only see their own tasks
-    if (profile.role !== 'ceo') {
+    // Admins see all tasks; team members only see their own
+    if (!hasAdminAccess(profile.role)) {
       filters.submittedBy = profile.id
     }
 
@@ -75,7 +76,7 @@ export function TasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-        {profile?.role !== 'ceo' && (
+        {!hasAdminAccess(profile?.role) && (
           <Button asChild>
             <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
           </Button>

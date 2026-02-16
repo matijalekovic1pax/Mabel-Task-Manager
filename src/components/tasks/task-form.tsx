@@ -46,21 +46,26 @@ export function TaskForm() {
     try {
       const task = await createTask(validated.data, profile.id)
 
-      // Notify CEO
-      const { data: ceo } = await supabase
+      // Notify all admins (CEO + super_admin)
+      const { data: admins } = await supabase
         .from('profiles')
         .select('id')
-        .eq('role', 'ceo')
-        .single()
+        .in('role', ['ceo', 'super_admin'])
 
-      if (ceo) {
-        await createNotification({
-          recipient_id: ceo.id,
-          type: 'task_submitted',
-          title: 'New task submitted',
-          message: `New ${validated.data.category} task: ${validated.data.title}`,
-          task_id: task.id,
-        })
+      if (admins) {
+        await Promise.all(
+          admins
+            .filter((a) => a.id !== profile.id)
+            .map((a) =>
+              createNotification({
+                recipient_id: a.id,
+                type: 'task_submitted',
+                title: 'New task submitted',
+                message: `New ${validated.data.category} task: ${validated.data.title}`,
+                task_id: task.id,
+              }),
+            ),
+        )
       }
 
       toast.success('Task submitted successfully')

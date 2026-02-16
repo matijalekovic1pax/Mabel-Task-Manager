@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase/client'
 // ---------------------------------------------------------------------------
 
 const isDemo = !import.meta.env.VITE_SUPABASE_URL
+const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL?.toLowerCase() ?? ''
 
 const DEMO_USER: User = {
   id: 'demo-user-id',
@@ -61,7 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Fetch the profile row for the given user id
+  // Fetch the profile row for the given user id.
+  // If the user's email matches VITE_SUPER_ADMIN_EMAIL, promote to super_admin.
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
@@ -75,7 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    setProfile(data)
+    if (SUPER_ADMIN_EMAIL && data.email.toLowerCase() === SUPER_ADMIN_EMAIL) {
+      setProfile({ ...data, role: 'super_admin' })
+    } else {
+      setProfile(data)
+    }
   }, [])
 
   // Bootstrap: read the existing session on mount

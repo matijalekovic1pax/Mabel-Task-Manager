@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
+import { hasAdminAccess } from '@/lib/utils/roles'
 import { LayoutDashboard, ListTodo, PlusCircle, Bell, Settings, Users, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -18,7 +19,7 @@ const ceoOnlyItems = [
 
 export function Sidebar() {
   const { profile, signOut } = useAuth()
-  const isCeo = profile?.role === 'ceo'
+  const isAdmin = hasAdminAccess(profile?.role)
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:border-r bg-card">
@@ -50,7 +51,7 @@ export function Sidebar() {
             )}
           </NavLink>
         ))}
-        {isCeo && (
+        {isAdmin && (
           <>
             <Separator className="my-2" />
             {ceoOnlyItems.map((item) => (

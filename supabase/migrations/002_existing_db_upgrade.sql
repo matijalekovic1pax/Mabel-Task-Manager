@@ -12,6 +12,7 @@
 INSERT INTO public.allowed_emails (email, role)
 VALUES
   ('matija.lekovic@1pax.com', 'super_admin'),
+  ('matija.lekovic@gmail.com', 'team_member'),
   ('mabel.miranda@1pax.com', 'ceo'),
   ('mm@1pax.com', 'ceo')
 ON CONFLICT (email) DO UPDATE SET role = EXCLUDED.role;
@@ -34,6 +35,11 @@ UPDATE public.profiles
 SET role = 'super_admin'
 WHERE lower(email) = 'matija.lekovic@1pax.com'
   AND role != 'super_admin';
+
+UPDATE public.profiles
+SET role = 'team_member'
+WHERE lower(email) = 'matija.lekovic@gmail.com'
+  AND role != 'team_member';
 
 UPDATE public.profiles
 SET role = 'ceo'

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(xcopy:*)",
+      "Bash(robocopy:*)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npx next build:*)",
+      "Bash(npm create:*)",
+      "Bash(ls \"c:\\\\Users\\\\1Pax Mateja\\\\Documents\\\\Mabel Task Manager\\\\src\\\\lib\\\\supabase\"\" 2>nul && ls \"c:Users1Pax MatejaDocumentsMabel Task Managersrclibtypes\"\")",
+      "Bash(ls \"c:\\\\Users\\\\1Pax Mateja\\\\Documents\\\\Mabel Task Manager\\\\src\\\\lib\\\\utils\"\" 2>nul && ls \"c:Users1Pax MatejaDocumentsMabel Task Managersrclibvalidations\"\")",
+      "Bash(ls \"c:\\\\Users\\\\1Pax Mateja\\\\Documents\\\\Mabel Task Manager\\\\src\\\\lib\\\\services\"\" 2>nul && ls \"c:Users1Pax MatejaDocumentsMabel Task Managersrccontexts\"\")",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}

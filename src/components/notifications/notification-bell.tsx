@@ -1,0 +1,110 @@
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/auth-context'
+import { getNotifications, getUnreadCount, markAsRead } from '@/lib/services/notifications'
+import { supabase } from '@/lib/supabase/client'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
+import { Bell } from 'lucide-react'
+import { NotificationItem } from './notification-item'
+import type { Notification } from '@/lib/types'
+
+export function NotificationBell() {
+  const { profile } = useAuth()
+  const navigate = useNavigate()
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [open, setOpen] = useState(false)
+
+  const refresh = useCallback(async () => {
+    if (!profile) return
+    try {
+      const [items, count] = await Promise.all([
+        getNotifications(profile.id, { limit: 5 }),
+        getUnreadCount(profile.id),
+      ])
+      setNotifications(items)
+      setUnreadCount(count)
+    } catch {
+      // silently fail
+    }
+  }, [profile])
+
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  // Realtime subscription for new notifications
+  useEffect(() => {
+    if (!profile) return
+
+    const channel = supabase
+      .channel('notifications-bell')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${profile.id}` },
+        () => { refresh() },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [profile, refresh])
+
+  async function handleClick(notification: Notification) {
+    if (!notification.is_read) {
+      try {
+        await markAsRead(notification.id)
+        setUnreadCount((c) => Math.max(0, c - 1))
+        setNotifications((prev) => prev.map((n) => n.id === notification.id ? { ...n, is_read: true } : n))
+      } catch {
+        // ignore
+      }
+    }
+    setOpen(false)
+    if (notification.task_id) {
+      navigate(`/tasks/${notification.task_id}`)
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <h3 className="text-sm font-semibold">Notifications</h3>
+          {unreadCount > 0 && (
+            <span className="text-xs text-muted-foreground">{unreadCount} unread</span>
+          )}
+        </div>
+        <div className="max-h-80 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <p className="p-4 text-center text-sm text-muted-foreground">No notifications</p>
+          ) : (
+            notifications.map((n) => (
+              <NotificationItem key={n.id} notification={n} onClick={() => handleClick(n)} />
+            ))
+          )}
+        </div>
+        <div className="border-t p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-xs"
+            onClick={() => { setOpen(false); navigate('/notifications') }}
+          >
+            View all notifications
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}

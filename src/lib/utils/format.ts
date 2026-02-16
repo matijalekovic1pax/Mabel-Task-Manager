@@ -42,12 +42,12 @@ export function formatDateTime(dateString: string): string {
 export function formatDeadline(dateString: string): string {
   const date = parseISO(dateString)
 
-  if (isPast(date)) {
-    return `Overdue (${formatDistanceToNow(date, { addSuffix: true })})`
-  }
-
   if (isToday(date)) {
     return 'Due today'
+  }
+
+  if (isPast(date)) {
+    return `Overdue (${formatDistanceToNow(date, { addSuffix: true })})`
   }
 
   if (isTomorrow(date)) {

@@ -13,16 +13,25 @@ export function ProtectedRoute({ children, requireRole }: { children: React.Reac
     )
   }
 
-  if (authState === 'session_expired' || authState === 'unauthenticated' || !user) {
+  if (authState === 'session_expired') {
     return <Navigate to="/login?reason=session_expired" replace />
+  }
+
+  if (authState === 'unauthenticated' || !user) {
+    return <Navigate to="/login" replace />
   }
 
   if (authState === 'access_denied') {
     return <Navigate to="/access-denied" replace />
   }
 
+  // Profile is still being fetched (deferred via setTimeout in auth-context)
   if (!profile) {
-    return <Navigate to="/access-denied" replace />
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   if (!profile.is_active) {

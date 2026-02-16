@@ -26,14 +26,21 @@ export function TaskFilters() {
     [setSearchParams]
   )
 
-  const clearFilters = () => setSearchParams({})
-  const hasFilters = searchParams.toString().length > 0
+  const FILTER_KEYS = ['search', 'status', 'category', 'priority']
+  const clearFilters = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      FILTER_KEYS.forEach((key) => next.delete(key))
+      return next
+    })
+  }
+  const hasFilters = FILTER_KEYS.some((key) => searchParams.has(key))
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Input
         placeholder="Search tasks..."
-        defaultValue={searchParams.get('search') ?? ''}
+        value={searchParams.get('search') ?? ''}
         onChange={(e) => updateParam('search', e.target.value)}
         className="w-48"
       />

@@ -61,13 +61,22 @@ export function TaskComments({
   async function handleProvideInfo() {
     if (!profile || !canProvideInfo) return
 
+    // Use the comment textarea content as the transition note
+    const content = formRef.current
+      ? (new FormData(formRef.current).get('content') as string)
+      : ''
+    const note = content?.trim() || 'Additional information provided by submitter.'
+
     setProvidingInfo(true)
     setError(null)
 
     try {
-      await transitionTask(taskId, 'provide_info', {
-        note: 'Additional information provided by submitter.',
-      })
+      // If the user typed a comment, also post it as a comment
+      if (content?.trim()) {
+        await addComment(taskId, content.trim(), profile.id)
+      }
+      await transitionTask(taskId, 'provide_info', { note })
+      formRef.current?.reset()
       toast.success('Task returned to CEO review queue')
       onCommentAdded()
     } catch (err) {

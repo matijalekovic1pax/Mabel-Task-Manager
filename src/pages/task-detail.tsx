@@ -33,7 +33,7 @@ const ACTION_LABELS: Record<string, string> = {
 }
 
 function getNextActionOwner(task: TaskWithDetails): string {
-  if (STATUS_CONFIG[task.status].isFinal) return 'No action required'
+  if (STATUS_CONFIG[task.status]?.isFinal) return 'No action required'
 
   if (task.status === 'needs_more_info') {
     return task.submitter.full_name
@@ -58,7 +58,11 @@ export function TaskDetailPage() {
   const isAdmin = hasAdminAccess(profile?.role)
 
   const refresh = useCallback(async () => {
-    if (!id) return
+    if (!id) {
+      setError('No task ID provided')
+      setLoading(false)
+      return
+    }
     try {
       const data = await getTask(id)
       setTask(data)
@@ -120,10 +124,11 @@ export function TaskDetailPage() {
     )
   }
 
-  const canRunAdminActions = isAdmin && !STATUS_CONFIG[task.status].isFinal
-  const canDelegate = canRunAdminActions
+  const isFinal = STATUS_CONFIG[task.status]?.isFinal ?? false
+  const canRunAdminActions = isAdmin && !isFinal
+  const canDelegate = canRunAdminActions && task.status !== 'delegated'
   const canMarkReady = !isAdmin && task.status === 'delegated' && task.assigned_to === profile?.id
-  const overdue = task.deadline ? isOverdue(task.deadline) && !STATUS_CONFIG[task.status].isFinal : false
+  const overdue = task.deadline ? isOverdue(task.deadline) && !isFinal : false
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -231,7 +236,7 @@ export function TaskDetailPage() {
       )}
 
       {canRunAdminActions && <TaskResolutionForm task={task} onResolved={refresh} />}
-      {canDelegate && (
+      {canDelegate && teamMembers.filter((m) => m.id !== profile?.id).length > 0 && (
         <TaskDelegationForm
           task={task}
           teamMembers={teamMembers.filter((m) => m.id !== profile?.id)}

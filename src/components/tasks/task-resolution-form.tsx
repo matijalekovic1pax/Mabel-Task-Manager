@@ -18,6 +18,14 @@ const ACTION_LABELS: Record<string, string> = {
   resolve: 'Resolve',
 }
 
+const ACTION_PAST_TENSE: Record<string, string> = {
+  approve: 'Task approved',
+  reject: 'Task rejected',
+  request_info: 'More info requested',
+  defer: 'Task deferred',
+  resolve: 'Task resolved',
+}
+
 export function TaskResolutionForm({
   task,
   onResolved,
@@ -48,7 +56,7 @@ export function TaskResolutionForm({
 
     try {
       await transitionTask(task.id, validated.data.action, { note: validated.data.note ?? null })
-      toast.success(`Task ${ACTION_LABELS[validated.data.action].toLowerCase()}`)
+      toast.success(ACTION_PAST_TENSE[validated.data.action] ?? 'Decision submitted')
       onResolved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit decision')

@@ -12,7 +12,9 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const isSessionExpired = searchParams.get('reason') === 'session_expired'
 
-  if (loading) {
+  // While loading OR while user is set but profile hasn't been fetched yet
+  // (the profile fetch is deferred via setTimeout in auth-context), show spinner.
+  if (loading || (user && !profile && authState !== 'access_denied')) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
@@ -24,7 +26,7 @@ export function LoginPage() {
     return <Navigate to="/" replace />
   }
 
-  if (authState === 'access_denied' || (user && !profile)) {
+  if (authState === 'access_denied') {
     return <Navigate to="/access-denied" replace />
   }
 
@@ -37,6 +39,7 @@ export function LoginPage() {
       // In demo mode, the state updates immediately.
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in. Please try again.')
+    } finally {
       setSigningIn(false)
     }
   }

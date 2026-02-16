@@ -33,6 +33,7 @@ interface AuthContextValue {
   loading: boolean
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -154,6 +155,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchProfile])
 
+  // Re-fetch the profile (e.g. after the user edits their name/department)
+  const refreshProfile = useCallback(async () => {
+    if (!user) return
+    const result = await fetchProfile(user.id)
+    if (result.profile) {
+      setProfile(result.profile)
+    }
+  }, [user, fetchProfile])
+
   // Sign in - always redirects to Google OAuth
   const signInWithGoogle = useCallback(async () => {
     sessionExpiredRef.current = false
@@ -192,7 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, authState, loading, signInWithGoogle, signOut }}
+      value={{ user, profile, authState, loading, signInWithGoogle, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

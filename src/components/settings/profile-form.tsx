@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export function ProfileForm() {
-  const { profile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -30,6 +30,7 @@ export function ProfileForm() {
         .eq('id', profile.id)
 
       if (error) throw error
+      await refreshProfile()
       toast.success('Profile updated')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update profile')

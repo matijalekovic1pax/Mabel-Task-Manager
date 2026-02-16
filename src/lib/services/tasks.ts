@@ -25,6 +25,7 @@ export async function createTask(data: TaskInput, userId: string) {
       submitted_by: userId,
       assigned_to: data.assigned_to ?? null,
       status: data.assigned_to ? 'delegated' : 'pending',
+      file_link: data.file_link ?? null,
     })
     .select()
     .single()

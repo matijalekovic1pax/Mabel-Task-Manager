@@ -42,6 +42,7 @@ export function TaskForm() {
       priority: formData.get('priority') as string,
       deadline: (formData.get('deadline') as string) || null,
       assigned_to: assignedTo,
+      file_link: (formData.get('file_link') as string) || null,
     }
 
     const validated = taskSchema.safeParse(raw)
@@ -150,6 +151,11 @@ export function TaskForm() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="file_link">File Link (optional)</Label>
+            <Input id="file_link" name="file_link" type="url" placeholder="https://www.dropbox.com/..." />
+            <p className="text-xs text-muted-foreground">Paste a Dropbox, Google Drive, or any file sharing link</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="deadline">Deadline (optional)</Label>

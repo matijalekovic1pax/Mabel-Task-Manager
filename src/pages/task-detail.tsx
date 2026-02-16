@@ -16,7 +16,7 @@ import { TaskDelegationForm } from '@/components/tasks/task-delegation-form'
 import { TaskComments } from '@/components/tasks/task-comments'
 import { formatDateTime, formatDeadline, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
-import { ArrowLeft, Calendar, User, Clock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink } from 'lucide-react'
 import { hasAdminAccess } from '@/lib/utils/roles'
 import type { TaskWithDetails, Profile } from '@/lib/types'
 
@@ -117,6 +117,26 @@ export function TaskDetailPage() {
               </div>
             )}
           </div>
+
+          {task.file_link && (
+            <>
+              <Separator />
+              <div className="flex items-center gap-2 rounded-md bg-blue-50 p-3 dark:bg-blue-950/20">
+                <ExternalLink className="h-4 w-4 shrink-0 text-blue-600" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Attached Files</p>
+                  <a
+                    href={task.file_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 underline break-all hover:text-blue-800"
+                  >
+                    {task.file_link}
+                  </a>
+                </div>
+              </div>
+            </>
+          )}
 
           {task.assigned_to && task.assignee && (
             <>

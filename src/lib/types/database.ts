@@ -72,6 +72,7 @@ export type Database = {
           resolution_note: string | null
           is_archived: boolean
           reference_number: string
+          file_link: string | null
         }
         Insert: {
           id?: string
@@ -91,6 +92,7 @@ export type Database = {
           resolution_note?: string | null
           is_archived?: boolean
           reference_number?: string
+          file_link?: string | null
         }
         Update: {
           id?: string
@@ -110,6 +112,7 @@ export type Database = {
           resolution_note?: string | null
           is_archived?: boolean
           reference_number?: string
+          file_link?: string | null
         }
         Relationships: [
           {

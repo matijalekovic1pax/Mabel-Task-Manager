@@ -24,6 +24,7 @@ export const taskSchema = z.object({
   priority: z.enum(['urgent', 'high', 'normal', 'low']),
   deadline: z.string().nullable().optional(),
   assigned_to: z.string().uuid().nullable().optional(),
+  file_link: z.string().url('Please enter a valid URL').nullable().optional(),
 })
 
 export type TaskInput = z.infer<typeof taskSchema>

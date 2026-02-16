@@ -13,6 +13,7 @@ import { TaskDetailPage } from '@/pages/task-detail'
 import { NotificationsPage } from '@/pages/notifications'
 import { SettingsPage } from '@/pages/settings'
 import { TeamManagementPage } from '@/pages/team-management'
+import { AdminPage } from '@/pages/admin'
 
 export default function App() {
   return (
@@ -43,6 +44,14 @@ export default function App() {
               element={
                 <ProtectedRoute requireRole="ceo">
                   <TeamManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin"
+              element={
+                <ProtectedRoute requireRole="ceo">
+                  <AdminPage />
                 </ProtectedRoute>
               }
             />

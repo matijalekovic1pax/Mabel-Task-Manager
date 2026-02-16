@@ -97,3 +97,41 @@ export async function toggleMemberActive(
   if (error) throw error
   return data
 }
+
+// ---------------------------------------------------------------------------
+// Update a team member's role
+// ---------------------------------------------------------------------------
+
+export async function updateMemberRole(
+  memberId: string,
+  role: 'ceo' | 'team_member' | 'super_admin',
+) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ role })
+    .eq('id', memberId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+// ---------------------------------------------------------------------------
+// Update the role for an allowed email entry
+// ---------------------------------------------------------------------------
+
+export async function updateAllowedEmailRole(
+  emailId: string,
+  role: 'ceo' | 'team_member' | 'super_admin',
+) {
+  const { data, error } = await supabase
+    .from('allowed_emails')
+    .update({ role })
+    .eq('id', emailId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}

@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { hasAdminAccess } from '@/lib/utils/roles'
-import { LayoutDashboard, ListTodo, PlusCircle, Bell, Settings, Users, LogOut } from 'lucide-react'
+import { LayoutDashboard, ListTodo, PlusCircle, Bell, Settings, Users, Shield, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
@@ -14,6 +14,7 @@ const navItems = [
 ]
 
 const ceoOnlyItems = [
+  { to: '/admin', label: 'Admin Dashboard', icon: Shield, color: 'text-rose-500' },
   { to: '/settings/team', label: 'Team Management', icon: Users, color: 'text-pink-500' },
 ]
 

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Menu, LayoutDashboard, ListTodo, PlusCircle, Bell, Settings, Users, LogOut } from 'lucide-react'
+import { Menu, LayoutDashboard, ListTodo, PlusCircle, Bell, Settings, Users, Shield, LogOut } from 'lucide-react'
 import { hasAdminAccess } from '@/lib/utils/roles'
 
 const navItems = [
@@ -61,6 +61,24 @@ export function MobileNav() {
           {isAdmin && (
             <>
               <Separator className="my-2" />
+              <NavLink
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-violet-500 to-indigo-600 text-white shadow-sm'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Shield className={`h-4 w-4 ${isActive ? 'text-white' : 'text-rose-500'}`} />
+                    Admin Dashboard
+                  </>
+                )}
+              </NavLink>
               <NavLink
                 to="/settings/team"
                 onClick={() => setOpen(false)}

@@ -31,8 +31,16 @@ export function NotificationBell() {
   }, [profile])
 
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    if (!profile) return
+
+    const timeoutId = window.setTimeout(() => {
+      void refresh()
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [profile, refresh])
 
   // Realtime subscription for new notifications
   useEffect(() => {
@@ -43,7 +51,7 @@ export function NotificationBell() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${profile.id}` },
-        () => { refresh() },
+        () => { void refresh() },
       )
       .subscribe()
 

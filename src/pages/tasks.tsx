@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { getTasks } from '@/lib/services/tasks'
+import { getTasks, getMyAssignedTasks, getMySubmittedTasks } from '@/lib/services/tasks'
 import { TaskCard } from '@/components/tasks/task-card'
 import { TaskFilters } from '@/components/tasks/task-filters'
 import { Button } from '@/components/ui/button'
@@ -18,9 +18,49 @@ const SORT_MAP: Record<string, { sortBy: TF['sortBy']; sortOrder: TF['sortOrder'
   priority: { sortBy: 'priority', sortOrder: 'asc' },
 }
 
+const PRIORITY_ORDER: Record<string, number> = {
+  urgent: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+}
+
+function mergeAndSortTasks(
+  submitted: TaskWithSubmitter[],
+  assigned: TaskWithSubmitter[],
+  sortBy: TF['sortBy'],
+  sortOrder: TF['sortOrder'],
+): TaskWithSubmitter[] {
+  const merged = new Map<string, TaskWithSubmitter>()
+  submitted.forEach((task) => merged.set(task.id, task))
+  assigned.forEach((task) => merged.set(task.id, task))
+
+  const list = Array.from(merged.values())
+
+  list.sort((a, b) => {
+    let cmp = 0
+
+    if (sortBy === 'priority') {
+      cmp = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+    } else if (sortBy === 'deadline') {
+      const aValue = a.deadline ? new Date(a.deadline).getTime() : Number.MAX_SAFE_INTEGER
+      const bValue = b.deadline ? new Date(b.deadline).getTime() : Number.MAX_SAFE_INTEGER
+      cmp = aValue - bValue
+    } else {
+      const aValue = new Date(a[sortBy ?? 'submitted_at']).getTime()
+      const bValue = new Date(b[sortBy ?? 'submitted_at']).getTime()
+      cmp = aValue - bValue
+    }
+
+    return sortOrder === 'desc' ? -cmp : cmp
+  })
+
+  return list
+}
+
 export function TasksPage() {
   const { profile } = useAuth()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [tasks, setTasks] = useState<TaskWithSubmitter[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -32,9 +72,10 @@ export function TasksPage() {
     const priority = searchParams.get('priority') || undefined
     const search = searchParams.get('search') || undefined
     const sort = searchParams.get('sort') || 'newest'
+    const view = searchParams.get('view') || 'all'
     const { sortBy, sortOrder } = SORT_MAP[sort] ?? SORT_MAP.newest
 
-    const filters: TF = {
+    const baseFilters: TF = {
       status,
       category,
       priority,
@@ -43,14 +84,23 @@ export function TasksPage() {
       sortOrder,
     }
 
-    // Admins see all tasks; team members only see their own
-    if (!hasAdminAccess(profile.role)) {
-      filters.submittedBy = profile.id
-    }
-
     try {
-      const data = await getTasks(filters)
-      setTasks(data)
+      if (hasAdminAccess(profile.role)) {
+        const data = await getTasks(baseFilters)
+        setTasks(data)
+      } else if (view === 'submitted') {
+        const submitted = await getMySubmittedTasks(profile.id, baseFilters)
+        setTasks(submitted)
+      } else if (view === 'assigned') {
+        const assigned = await getMyAssignedTasks(profile.id, baseFilters)
+        setTasks(assigned)
+      } else {
+        const [submitted, assigned] = await Promise.all([
+          getMySubmittedTasks(profile.id, baseFilters),
+          getMyAssignedTasks(profile.id, baseFilters),
+        ])
+        setTasks(mergeAndSortTasks(submitted, assigned, sortBy, sortOrder))
+      }
     } catch {
       // silently fail
     } finally {
@@ -60,17 +110,35 @@ export function TasksPage() {
 
   useEffect(() => {
     setLoading(true)
-    refresh()
+    void refresh()
   }, [refresh])
 
-  // Realtime refresh
   useEffect(() => {
     const channel = supabase
       .channel('tasks-list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        void refresh()
+      })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [refresh])
+
+  function updateView(view: 'all' | 'submitted' | 'assigned') {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (view === 'all') {
+        next.delete('view')
+      } else {
+        next.set('view', view)
+      }
+      return next
+    })
+  }
+
+  const currentView = searchParams.get('view') || 'all'
 
   return (
     <div className="space-y-6">
@@ -82,6 +150,20 @@ export function TasksPage() {
           </Button>
         )}
       </div>
+
+      {!hasAdminAccess(profile?.role) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant={currentView === 'all' ? 'default' : 'outline'} size="sm" onClick={() => updateView('all')}>
+            All
+          </Button>
+          <Button variant={currentView === 'submitted' ? 'default' : 'outline'} size="sm" onClick={() => updateView('submitted')}>
+            Submitted by Me
+          </Button>
+          <Button variant={currentView === 'assigned' ? 'default' : 'outline'} size="sm" onClick={() => updateView('assigned')}>
+            Assigned to Me
+          </Button>
+        </div>
+      )}
 
       <TaskFilters />
 

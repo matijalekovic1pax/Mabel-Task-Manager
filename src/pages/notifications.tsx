@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Notification } from '@/lib/types'
+import { supabase } from '@/lib/supabase/client'
 
 export function NotificationsPage() {
   const { profile } = useAuth()
@@ -27,7 +28,24 @@ export function NotificationsPage() {
     }
   }, [profile])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { void refresh() }, [refresh])
+
+  useEffect(() => {
+    if (!profile) return
+
+    const channel = supabase
+      .channel('notifications-list')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${profile.id}` },
+        () => { void refresh() },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [profile, refresh])
 
   async function handleClick(notification: Notification) {
     if (!notification.is_read) {

@@ -4,9 +4,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { addComment } from '@/lib/services/comments'
+import { transitionTask } from '@/lib/services/tasks'
 import { formatRelativeTime } from '@/lib/utils/format'
 import { useAuth } from '@/contexts/auth-context'
-import type { TaskComment, Profile } from '@/lib/types'
+import type { TaskComment, Profile, TaskStatus } from '@/lib/types'
 import { Loader2, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -21,14 +22,18 @@ export function TaskComments({
 }: {
   taskId: string
   taskSubmittedBy: string
-  taskStatus: string
+  taskStatus: TaskStatus
   comments: CommentWithAuthor[]
   onCommentAdded: () => void
 }) {
   const { profile } = useAuth()
   const formRef = useRef<HTMLFormElement>(null)
   const [loading, setLoading] = useState(false)
+  const [providingInfo, setProvidingInfo] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const canProvideInfo =
+    profile?.id === taskSubmittedBy && taskStatus === 'needs_more_info'
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -53,6 +58,25 @@ export function TaskComments({
     }
   }
 
+  async function handleProvideInfo() {
+    if (!profile || !canProvideInfo) return
+
+    setProvidingInfo(true)
+    setError(null)
+
+    try {
+      await transitionTask(taskId, 'provide_info', {
+        note: 'Additional information provided by submitter.',
+      })
+      toast.success('Task returned to CEO review queue')
+      onCommentAdded()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to provide info')
+    } finally {
+      setProvidingInfo(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -65,7 +89,7 @@ export function TaskComments({
           <div className="space-y-4">
             {comments.map((comment) => (
               <div key={comment.id}>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="mb-1 flex items-center gap-2">
                   {comment.author.avatar_url ? (
                     <img src={comment.author.avatar_url} alt={comment.author.full_name} className="h-6 w-6 rounded-full" />
                   ) : (
@@ -76,7 +100,7 @@ export function TaskComments({
                   <span className="text-sm font-medium">{comment.author.full_name}</span>
                   <span className="text-xs text-muted-foreground">{formatRelativeTime(comment.created_at)}</span>
                 </div>
-                <p className="text-sm pl-8 whitespace-pre-wrap">{comment.content}</p>
+                <p className="whitespace-pre-wrap pl-8 text-sm">{comment.content}</p>
               </div>
             ))}
             <Separator />
@@ -85,9 +109,16 @@ export function TaskComments({
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
           {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
           <Textarea name="content" placeholder="Add a comment..." required rows={2} />
-          <Button type="submit" size="sm" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Comment
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="submit" size="sm" disabled={loading || providingInfo}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Comment
+            </Button>
+            {canProvideInfo && (
+              <Button type="button" size="sm" variant="secondary" disabled={loading || providingInfo} onClick={handleProvideInfo}>
+                {providingInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Provide Requested Info
+              </Button>
+            )}
+          </div>
         </form>
       </CardContent>
     </Card>

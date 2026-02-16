@@ -23,7 +23,6 @@ export const taskSchema = z.object({
   ]),
   priority: z.enum(['urgent', 'high', 'normal', 'low']),
   deadline: z.string().nullable().optional(),
-  assigned_to: z.string().uuid().nullable().optional(),
   file_link: z.string().url('Please enter a valid URL').nullable().optional(),
 })
 
@@ -34,14 +33,14 @@ export type TaskInput = z.infer<typeof taskSchema>
 // ---------------------------------------------------------------------------
 
 export const resolutionSchema = z.object({
-  status: z.enum([
-    'approved',
-    'rejected',
-    'needs_more_info',
-    'deferred',
-    'resolved',
+  action: z.enum([
+    'approve',
+    'reject',
+    'request_info',
+    'defer',
+    'resolve',
   ]),
-  resolution_note: z
+  note: z
     .string()
     .max(2000, 'Resolution note must be at most 2,000 characters')
     .optional(),

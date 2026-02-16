@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase/client'
 import type {
   TaskFilters,
+  TaskAction,
+  Task,
   TaskWithSubmitter,
   TaskWithDetails,
   TaskStatus,
@@ -23,8 +25,8 @@ export async function createTask(data: TaskInput, userId: string) {
       priority: data.priority,
       deadline: data.deadline ?? null,
       submitted_by: userId,
-      assigned_to: data.assigned_to ?? null,
-      status: data.assigned_to ? 'delegated' : 'pending',
+      assigned_to: null,
+      status: 'pending',
       file_link: data.file_link ?? null,
     })
     .select()
@@ -32,6 +34,37 @@ export async function createTask(data: TaskInput, userId: string) {
 
   if (error) throw error
   return task
+}
+
+// ---------------------------------------------------------------------------
+// Queue-focused helpers
+// ---------------------------------------------------------------------------
+
+export async function getCeoQueue(): Promise<TaskWithSubmitter[]> {
+  return getTasks({
+    sortBy: 'submitted_at',
+    sortOrder: 'desc',
+  })
+}
+
+export async function getMySubmittedTasks(
+  userId: string,
+  filters?: TaskFilters,
+): Promise<TaskWithSubmitter[]> {
+  return getTasks({
+    ...filters,
+    submittedBy: userId,
+  })
+}
+
+export async function getMyAssignedTasks(
+  userId: string,
+  filters?: TaskFilters,
+): Promise<TaskWithSubmitter[]> {
+  return getTasks({
+    ...filters,
+    assignedTo: userId,
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -130,62 +163,69 @@ export async function getTask(taskId: string): Promise<TaskWithDetails> {
       assignee:profiles!tasks_assigned_to_fkey(*),
       resolver:profiles!tasks_resolved_by_fkey(*),
       comments:task_comments(*, author:profiles!task_comments_author_id_fkey(*)),
-      attachments:task_attachments(*)
+      attachments:task_attachments(*),
+      events:task_events(*, actor:profiles!task_events_actor_id_fkey(*))
     `,
     )
     .eq('id', taskId)
     .single()
 
   if (error) throw error
-  return data as unknown as TaskWithDetails
-}
 
-// ---------------------------------------------------------------------------
-// Resolve a task (CEO action)
-// ---------------------------------------------------------------------------
-
-export async function resolveTask(
-  taskId: string,
-  data: ResolutionInput,
-  userId: string,
-) {
-  const { data: task, error } = await supabase
-    .from('tasks')
-    .update({
-      status: data.status,
-      resolution_note: data.resolution_note ?? null,
-      resolved_by: userId,
-      resolved_at: new Date().toISOString(),
-    })
-    .eq('id', taskId)
-    .select()
-    .single()
-
-  if (error) throw error
+  const task = data as unknown as TaskWithDetails
+  task.comments = [...(task.comments ?? [])].sort((a, b) => (
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  ))
+  task.events = [...(task.events ?? [])].sort((a, b) => (
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ))
   return task
 }
 
 // ---------------------------------------------------------------------------
-// Delegate a task to a team member (CEO action)
+// Transition API (server-enforced workflow)
 // ---------------------------------------------------------------------------
 
+export async function transitionTask(
+  taskId: string,
+  action: TaskAction,
+  options?: {
+    note?: string | null
+    assignedTo?: string | null
+  },
+): Promise<Task> {
+  const { data, error } = await supabase.rpc('transition_task', {
+    p_task_id: taskId,
+    p_action: action,
+    p_note: options?.note ?? null,
+    p_assigned_to: options?.assignedTo ?? null,
+  })
+
+  if (error) throw error
+  return data as Task
+}
+
+// ---------------------------------------------------------------------------
+// Legacy helpers (kept for compatibility; prefer transitionTask)
+// ---------------------------------------------------------------------------
+
+/** @deprecated Use transitionTask(taskId, action, { note }) instead. */
+export async function resolveTask(
+  taskId: string,
+  data: ResolutionInput,
+) {
+  return transitionTask(taskId, data.action, { note: data.note ?? null })
+}
+
+/** @deprecated Use transitionTask(taskId, 'delegate', { assignedTo, note }) instead. */
 export async function delegateTask(
   taskId: string,
   data: DelegationInput,
 ) {
-  const { data: task, error } = await supabase
-    .from('tasks')
-    .update({
-      status: 'delegated' as const,
-      assigned_to: data.assigned_to,
-      delegation_note: data.delegation_note ?? null,
-    })
-    .eq('id', taskId)
-    .select()
-    .single()
-
-  if (error) throw error
-  return task
+  return transitionTask(taskId, 'delegate', {
+    assignedTo: data.assigned_to,
+    note: data.delegation_note ?? null,
+  })
 }
 
 // ---------------------------------------------------------------------------

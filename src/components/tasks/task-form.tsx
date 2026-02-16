@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,26 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CATEGORY_CONFIG, PRIORITY_CONFIG } from '@/lib/utils/constants'
 import { taskSchema } from '@/lib/validations/task'
 import { createTask } from '@/lib/services/tasks'
-import { createNotification } from '@/lib/services/notifications'
-import { getActiveTeamMembers } from '@/lib/services/team'
 import { useAuth } from '@/contexts/auth-context'
-import { supabase } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Profile } from '@/lib/types'
 
 export function TaskForm() {
   const { profile } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [teamMembers, setTeamMembers] = useState<Profile[]>([])
-  const [assignedTo, setAssignedTo] = useState<string | null>(null)
-  useEffect(() => {
-    getActiveTeamMembers()
-      .then(setTeamMembers)
-      .catch(() => {})
-  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -41,7 +30,6 @@ export function TaskForm() {
       category: formData.get('category') as string,
       priority: formData.get('priority') as string,
       deadline: (formData.get('deadline') as string) || null,
-      assigned_to: assignedTo,
       file_link: (formData.get('file_link') as string) || null,
     }
 
@@ -55,45 +43,12 @@ export function TaskForm() {
     setError(null)
 
     try {
-      const task = await createTask(validated.data, profile.id)
-
-      // Notify all admins (CEO + super_admin)
-      const { data: admins } = await supabase
-        .from('profiles')
-        .select('id')
-        .in('role', ['ceo', 'super_admin'])
-
-      if (admins) {
-        await Promise.all(
-          admins
-            .filter((a) => a.id !== profile.id)
-            .map((a) =>
-              createNotification({
-                recipient_id: a.id,
-                type: 'task_submitted',
-                title: 'New task submitted',
-                message: `New ${validated.data.category} task: ${validated.data.title}`,
-                task_id: task.id,
-              }),
-            ),
-        )
-      }
-
-      // Notify the assignee if someone was assigned
-      if (validated.data.assigned_to && validated.data.assigned_to !== profile.id) {
-        await createNotification({
-          recipient_id: validated.data.assigned_to,
-          type: 'task_delegated',
-          title: 'Task assigned to you',
-          message: `You've been assigned: ${validated.data.title}`,
-          task_id: task.id,
-        })
-      }
-
+      await createTask(validated.data, profile.id)
       toast.success('Task submitted successfully')
       navigate('/tasks')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit task')
+    } finally {
       setLoading(false)
     }
   }
@@ -137,20 +92,6 @@ export function TaskForm() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Assign To (optional)</Label>
-            <Select value={assignedTo ?? 'unassigned'} onValueChange={(v) => setAssignedTo(v === 'unassigned' ? null : v)}>
-              <SelectTrigger><SelectValue placeholder="Leave unassigned" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {teamMembers.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.full_name}{m.department ? ` · ${m.department}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="file_link">File Link (optional)</Label>

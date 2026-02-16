@@ -11,8 +11,6 @@ import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/lib/types'
 import { supabase } from '@/lib/supabase/client'
 
-const SUPER_ADMIN_EMAIL = import.meta.env.SUPER_ADMIN_EMAIL?.toLowerCase() ?? ''
-
 // ---------------------------------------------------------------------------
 // Context shape
 // ---------------------------------------------------------------------------
@@ -45,7 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Fetch the profile row for the given user id.
-  // If the user's email matches SUPER_ADMIN_EMAIL, promote to super_admin.
   const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -60,11 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      if (SUPER_ADMIN_EMAIL && data.email.toLowerCase() === SUPER_ADMIN_EMAIL) {
-        setProfile({ ...data, role: 'super_admin' })
-      } else {
-        setProfile(data)
-      }
+      setProfile(data)
     } catch (err) {
       console.error('Profile fetch error:', err)
       setProfile(null)

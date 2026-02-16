@@ -5,8 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { delegationSchema } from '@/lib/validations/task'
-import { delegateTask } from '@/lib/services/tasks'
-import { createNotification } from '@/lib/services/notifications'
+import { transitionTask } from '@/lib/services/tasks'
 import type { Profile, TaskWithDetails } from '@/lib/types'
 import { Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
@@ -41,14 +40,9 @@ export function TaskDelegationForm({
     setError(null)
 
     try {
-      await delegateTask(task.id, validated.data)
-
-      await createNotification({
-        recipient_id: validated.data.assigned_to,
-        type: 'task_delegated',
-        title: 'Task delegated to you',
-        message: `${task.reference_number}: ${task.title}`,
-        task_id: task.id,
+      await transitionTask(task.id, 'delegate', {
+        assignedTo: validated.data.assigned_to,
+        note: validated.data.delegation_note ?? null,
       })
 
       toast.success('Task delegated')

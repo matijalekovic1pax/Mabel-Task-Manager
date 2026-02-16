@@ -225,6 +225,54 @@ export type Database = {
           },
         ]
       }
+      task_events: {
+        Row: {
+          id: string
+          task_id: string
+          actor_id: string
+          action: string
+          from_status: Database['public']['Enums']['task_status']
+          to_status: Database['public']['Enums']['task_status']
+          note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          actor_id: string
+          action: string
+          from_status: Database['public']['Enums']['task_status']
+          to_status: Database['public']['Enums']['task_status']
+          note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          actor_id?: string
+          action?: string
+          from_status?: Database['public']['Enums']['task_status']
+          to_status?: Database['public']['Enums']['task_status']
+          note?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'task_events_task_id_fkey'
+            columns: ['task_id']
+            isOneToOne: false
+            referencedRelation: 'tasks'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'task_events_actor_id_fkey'
+            columns: ['actor_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       notifications: {
         Row: {
           id: string
@@ -310,7 +358,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      transition_task: {
+        Args: {
+          p_task_id: string
+          p_action: string
+          p_note?: string | null
+          p_assigned_to?: string | null
+        }
+        Returns: Database['public']['Tables']['tasks']['Row']
+      }
     }
     Enums: {
       task_category:
@@ -357,6 +413,7 @@ export type Profile = Tables['profiles']['Row']
 export type Task = Tables['tasks']['Row']
 export type TaskComment = Tables['task_comments']['Row']
 export type TaskAttachment = Tables['task_attachments']['Row']
+export type TaskEvent = Tables['task_events']['Row']
 export type Notification = Tables['notifications']['Row']
 export type AllowedEmail = Tables['allowed_emails']['Row']
 
@@ -369,8 +426,19 @@ export type ProfileInsert = Tables['profiles']['Insert']
 export type TaskInsert = Tables['tasks']['Insert']
 export type TaskCommentInsert = Tables['task_comments']['Insert']
 export type TaskAttachmentInsert = Tables['task_attachments']['Insert']
+export type TaskEventInsert = Tables['task_events']['Insert']
 export type NotificationInsert = Tables['notifications']['Insert']
 export type AllowedEmailInsert = Tables['allowed_emails']['Insert']
+
+export type TaskAction =
+  | 'request_info'
+  | 'delegate'
+  | 'approve'
+  | 'reject'
+  | 'defer'
+  | 'resolve'
+  | 'mark_ready'
+  | 'provide_info'
 
 /** Task with the submitter's profile joined. */
 export type TaskWithSubmitter = Task & {
@@ -384,4 +452,5 @@ export type TaskWithDetails = Task & {
   resolver: Profile | null
   comments: (TaskComment & { author: Profile })[]
   attachments: TaskAttachment[]
+  events: (TaskEvent & { actor: Profile })[]
 }

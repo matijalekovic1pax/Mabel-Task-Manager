@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { getTasks } from '@/lib/services/tasks'
+import { getCeoQueue, getMyAssignedTasks, getMySubmittedTasks } from '@/lib/services/tasks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TaskCard } from '@/components/tasks/task-card'
-import { getGreeting } from '@/lib/utils/format'
+import { getGreeting, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG } from '@/lib/utils/constants'
 import { PlusCircle, Clock, AlertTriangle, CheckCircle2, ListTodo } from 'lucide-react'
 import { hasAdminAccess } from '@/lib/utils/roles'
@@ -22,6 +22,22 @@ const CATEGORY_COLORS: Record<string, string> = {
   administrative: 'bg-slate-50 border-slate-200 text-slate-600',
 }
 
+const FINAL_STATUSES = ['approved', 'rejected', 'resolved']
+
+function mergeTasks(...lists: TaskWithSubmitter[][]): TaskWithSubmitter[] {
+  const byId = new Map<string, TaskWithSubmitter>()
+
+  for (const list of lists) {
+    for (const task of list) {
+      byId.set(task.id, task)
+    }
+  }
+
+  return Array.from(byId.values()).sort((a, b) => (
+    new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
+  ))
+}
+
 export function DashboardPage() {
   const { profile } = useAuth()
   const isCeo = hasAdminAccess(profile?.role)
@@ -31,12 +47,18 @@ export function DashboardPage() {
 
   const refresh = useCallback(async () => {
     if (!profile) return
+
     try {
-      const filters = isCeo
-        ? { sortBy: 'submitted_at' as const, sortOrder: 'desc' as const }
-        : { submittedBy: profile.id, sortBy: 'submitted_at' as const, sortOrder: 'desc' as const }
-      const data = await getTasks(filters)
-      setTasks(data)
+      if (isCeo) {
+        const data = await getCeoQueue()
+        setTasks(data)
+      } else {
+        const [submitted, assigned] = await Promise.all([
+          getMySubmittedTasks(profile.id),
+          getMyAssignedTasks(profile.id),
+        ])
+        setTasks(mergeTasks(submitted, assigned))
+      }
     } catch {
       // silently fail
     } finally {
@@ -44,32 +66,50 @@ export function DashboardPage() {
     }
   }, [profile, isCeo])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
 
-  // Realtime refresh
   useEffect(() => {
     const channel = supabase
       .channel('dashboard-tasks')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        void refresh()
+      })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [refresh])
 
-  const pending = tasks.filter((t) => t.status === 'pending')
-  const urgent = tasks.filter((t) => t.priority === 'urgent' && t.status === 'pending')
-  const resolved = tasks.filter((t) => ['approved', 'rejected', 'resolved'].includes(t.status))
+  const needsDecision = tasks.filter((t) => (
+    t.status === 'pending'
+    || t.status === 'in_review'
+    || (t.status === 'deferred' && isOverdue(t.deadline))
+  ))
+  const waitingOnOthers = tasks.filter((t) => (
+    t.status === 'needs_more_info'
+    || t.status === 'delegated'
+    || (t.status === 'deferred' && !isOverdue(t.deadline))
+  ))
+  const completed = tasks.filter((t) => FINAL_STATUSES.includes(t.status))
+
+  const myOpen = tasks.filter((t) => !FINAL_STATUSES.includes(t.status))
+  const mySubmitted = tasks.filter((t) => t.submitted_by === profile?.id)
+  const myAssigned = tasks.filter((t) => t.assigned_to === profile?.id)
+
   const dueToday = tasks.filter((t) => {
     if (!t.deadline) return false
     const d = new Date(t.deadline)
     const now = new Date()
-    return d.toDateString() === now.toDateString() && !['approved', 'rejected', 'resolved'].includes(t.status)
+    return d.toDateString() === now.toDateString() && !FINAL_STATUSES.includes(t.status)
   })
 
-  // Category breakdown for CEO
   const categoryBreakdown = Object.entries(CATEGORY_CONFIG).map(([key, config]) => ({
     key,
     label: config.label,
-    count: pending.filter((t) => t.category === key).length,
+    count: needsDecision.filter((t) => t.category === key).length,
   }))
 
   if (loading) {
@@ -89,10 +129,13 @@ export function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {getGreeting()}, <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">{profile?.full_name?.split(' ')[0]}</span>
+            {getGreeting()},{' '}
+            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+              {profile?.full_name?.split(' ')[0]}
+            </span>
           </h1>
           <p className="text-muted-foreground">
-            {isCeo ? "Here's what needs your attention." : "Here's an overview of your tasks."}
+            {isCeo ? 'CEO Decision Center' : 'Submitted and delegated tasks in one view.'}
           </p>
         </div>
         {!isCeo && (
@@ -102,50 +145,48 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* Stats cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-amber-400 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Needs Decision' : 'Open Tasks'}</CardTitle>
             <div className="rounded-full bg-amber-50 p-2">
               <Clock className="h-4 w-4 text-amber-500" />
             </div>
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-amber-600">{pending.length}</p></CardContent>
+          <CardContent><p className="text-3xl font-bold text-amber-600">{isCeo ? needsDecision.length : myOpen.length}</p></CardContent>
         </Card>
         <Card className="border-l-4 border-l-red-400 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Urgent</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Waiting on Others' : 'Assigned to Me'}</CardTitle>
             <div className="rounded-full bg-red-50 p-2">
               <AlertTriangle className="h-4 w-4 text-red-500" />
             </div>
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-red-600">{urgent.length}</p></CardContent>
+          <CardContent><p className="text-3xl font-bold text-red-600">{isCeo ? waitingOnOthers.length : myAssigned.length}</p></CardContent>
         </Card>
         <Card className="border-l-4 border-l-blue-400 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Due Today</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Due Today' : 'Submitted by Me'}</CardTitle>
             <div className="rounded-full bg-blue-50 p-2">
               <ListTodo className="h-4 w-4 text-blue-500" />
             </div>
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-blue-600">{dueToday.length}</p></CardContent>
+          <CardContent><p className="text-3xl font-bold text-blue-600">{isCeo ? dueToday.length : mySubmitted.length}</p></CardContent>
         </Card>
         <Card className="border-l-4 border-l-emerald-400 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Resolved</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
             <div className="rounded-full bg-emerald-50 p-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             </div>
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-emerald-600">{resolved.length}</p></CardContent>
+          <CardContent><p className="text-3xl font-bold text-emerald-600">{completed.length}</p></CardContent>
         </Card>
       </div>
 
-      {/* Category breakdown for CEO */}
       {isCeo && categoryBreakdown.some((c) => c.count > 0) && (
         <Card className="shadow-sm">
-          <CardHeader><CardTitle className="text-base">Pending by Category</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Needs Decision by Category</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {categoryBreakdown.filter((c) => c.count > 0).map((c) => (
@@ -159,40 +200,74 @@ export function DashboardPage() {
         </Card>
       )}
 
-      {/* Task list */}
-      <div>
-        <h2 className="mb-3 text-lg font-semibold">
-          {isCeo ? (
-            <span>
-              <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">Mabel's</span> Queue
-            </span>
-          ) : 'Recent Tasks'}
-        </h2>
-        {pending.length === 0 && !isCeo && tasks.length === 0 ? (
-          <Card className="shadow-sm">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="mb-4 rounded-full bg-violet-50 p-4">
-                <PlusCircle className="h-8 w-8 text-violet-400" />
+      {isCeo ? (
+        <div className="space-y-6">
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Needs Decision</h2>
+            {needsDecision.length === 0 ? (
+              <Card className="shadow-sm">
+                <CardContent className="py-6 text-sm text-muted-foreground">No items currently require your decision.</CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {needsDecision.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
               </div>
-              <p className="mb-4 text-muted-foreground">No tasks yet. Submit your first task!</p>
-              <Button asChild className="bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200">
-                <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {(isCeo ? pending : tasks).slice(0, 10).map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
-            {(isCeo ? pending.length : tasks.length) > 10 && (
-              <Button variant="outline" asChild className="w-full">
-                <Link to="/tasks">View all tasks</Link>
-              </Button>
             )}
-          </div>
-        )}
-      </div>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Waiting on Others</h2>
+            {waitingOnOthers.length === 0 ? (
+              <Card className="shadow-sm">
+                <CardContent className="py-6 text-sm text-muted-foreground">No tasks are currently blocked on team follow-up.</CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {waitingOnOthers.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Completed</h2>
+            {completed.length === 0 ? (
+              <Card className="shadow-sm">
+                <CardContent className="py-6 text-sm text-muted-foreground">No completed tasks yet.</CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {completed.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
+              </div>
+            )}
+          </section>
+        </div>
+      ) : (
+        <div>
+          <h2 className="mb-3 text-lg font-semibold">My Recent Work</h2>
+          {tasks.length === 0 ? (
+            <Card className="shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <div className="mb-4 rounded-full bg-violet-50 p-4">
+                  <PlusCircle className="h-8 w-8 text-violet-400" />
+                </div>
+                <p className="mb-4 text-muted-foreground">No tasks yet. Submit your first task!</p>
+                <Button asChild className="bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200">
+                  <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {tasks.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
+              {tasks.length > 10 && (
+                <Button variant="outline" asChild className="w-full">
+                  <Link to="/tasks">View all tasks</Link>
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

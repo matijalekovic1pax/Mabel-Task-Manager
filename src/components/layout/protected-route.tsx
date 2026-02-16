@@ -1,6 +1,5 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { hasAdminAccess } from '@/lib/utils/roles'
 import { Loader2 } from 'lucide-react'
 
 export function ProtectedRoute({ children, requireRole }: { children: React.ReactNode; requireRole?: 'ceo' | 'team_member' }) {
@@ -20,6 +19,10 @@ export function ProtectedRoute({ children, requireRole }: { children: React.Reac
 
   if (!profile) {
     return <Navigate to="/access-denied" replace />
+  }
+
+  if (!profile.is_active) {
+    return <Navigate to="/access-denied?reason=inactive" replace />
   }
 
   // super_admin bypasses all role restrictions

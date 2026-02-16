@@ -5,12 +5,18 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { resolutionSchema } from '@/lib/validations/task'
-import { resolveTask } from '@/lib/services/tasks'
-import { createNotification } from '@/lib/services/notifications'
-import { useAuth } from '@/contexts/auth-context'
+import { transitionTask } from '@/lib/services/tasks'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { TaskWithDetails } from '@/lib/types'
+
+const ACTION_LABELS: Record<string, string> = {
+  approve: 'Approve',
+  reject: 'Reject',
+  request_info: 'Request More Info',
+  defer: 'Defer',
+  resolve: 'Resolve',
+}
 
 export function TaskResolutionForm({
   task,
@@ -19,18 +25,16 @@ export function TaskResolutionForm({
   task: TaskWithDetails
   onResolved: () => void
 }) {
-  const { profile } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!profile) return
 
     const formData = new FormData(e.currentTarget)
     const raw = {
-      status: formData.get('status') as string,
-      resolution_note: formData.get('resolution_note') as string,
+      action: formData.get('action') as string,
+      note: formData.get('note') as string,
     }
 
     const validated = resolutionSchema.safeParse(raw)
@@ -43,20 +47,11 @@ export function TaskResolutionForm({
     setError(null)
 
     try {
-      await resolveTask(task.id, validated.data, profile.id)
-
-      await createNotification({
-        recipient_id: task.submitted_by,
-        type: validated.data.status === 'needs_more_info' ? 'needs_more_info' : 'task_resolved',
-        title: validated.data.status === 'needs_more_info' ? 'More information needed' : `Task ${validated.data.status}`,
-        message: `${task.reference_number}: ${task.title}`,
-        task_id: task.id,
-      })
-
-      toast.success('Task resolved')
+      await transitionTask(task.id, validated.data.action, { note: validated.data.note ?? null })
+      toast.success(`Task ${ACTION_LABELS[validated.data.action].toLowerCase()}`)
       onResolved()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resolve task')
+      setError(err instanceof Error ? err.message : 'Failed to submit decision')
     } finally {
       setLoading(false)
     }
@@ -74,20 +69,20 @@ export function TaskResolutionForm({
           {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
           <div className="space-y-2">
             <Label>Decision</Label>
-            <Select name="status" required>
+            <Select name="action" required>
               <SelectTrigger><SelectValue placeholder="Select decision" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="approved">Approve</SelectItem>
-                <SelectItem value="rejected">Reject</SelectItem>
-                <SelectItem value="needs_more_info">Need More Info</SelectItem>
-                <SelectItem value="deferred">Defer</SelectItem>
-                <SelectItem value="resolved">Resolve</SelectItem>
+                <SelectItem value="approve">Approve</SelectItem>
+                <SelectItem value="reject">Reject</SelectItem>
+                <SelectItem value="request_info">Request More Info</SelectItem>
+                <SelectItem value="defer">Defer</SelectItem>
+                <SelectItem value="resolve">Resolve</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="resolution_note">Note</Label>
-            <Textarea id="resolution_note" name="resolution_note" placeholder="Explain your decision..." required rows={3} />
+            <Label htmlFor="note">Note</Label>
+            <Textarea id="note" name="note" placeholder="Explain your decision..." required rows={3} />
           </div>
           <Button type="submit" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit Decision

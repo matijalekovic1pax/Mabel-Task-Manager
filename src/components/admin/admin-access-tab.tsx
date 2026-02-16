@@ -15,6 +15,7 @@ interface AdminAccessTabProps {
   members: Profile[]
   currentUserId: string
   onRefresh: () => void
+  readOnly?: boolean
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -23,7 +24,7 @@ const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
 }
 
-export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefresh }: AdminAccessTabProps) {
+export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefresh, readOnly = false }: AdminAccessTabProps) {
   const [addingEmail, setAddingEmail] = useState(false)
   const memberEmails = new Set(members.map((m) => m.email.toLowerCase()))
 
@@ -69,35 +70,37 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <UserPlus className="h-5 w-5" />Add Allowed Email
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAddEmail} className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[200px] space-y-2">
-              <Label htmlFor="admin-email">Email Address</Label>
-              <Input id="admin-email" name="email" type="email" placeholder="user@company.com" required />
-            </div>
-            <div className="w-40 space-y-2">
-              <Label>Role</Label>
-              <Select name="role" defaultValue="team_member">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="team_member">Team Member</SelectItem>
-                  <SelectItem value="ceo">CEO</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" disabled={addingEmail}>
-              {addingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Add
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {!readOnly && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <UserPlus className="h-5 w-5" />Add Allowed Email
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddEmail} className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[200px] space-y-2">
+                <Label htmlFor="admin-email">Email Address</Label>
+                <Input id="admin-email" name="email" type="email" placeholder="user@company.com" required />
+              </div>
+              <div className="w-40 space-y-2">
+                <Label>Role</Label>
+                <Select name="role" defaultValue="team_member">
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="team_member">Team Member</SelectItem>
+                    <SelectItem value="ceo">CEO</SelectItem>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" disabled={addingEmail}>
+                {addingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Add
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader><CardTitle className="text-base">Allowed Emails</CardTitle></CardHeader>
@@ -118,22 +121,28 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
                         <Badge variant="outline" className="ml-2 text-xs text-amber-600 border-amber-200">Pending</Badge>
                       )}
                     </div>
-                    <Select
-                      value={ae.role}
-                      onValueChange={(v) => handleRoleChange(ae.id, v)}
-                    >
-                      <SelectTrigger className="w-[140px] h-8 text-xs">
-                        <SelectValue>{ROLE_LABELS[ae.role]}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="team_member">Team Member</SelectItem>
-                        <SelectItem value="ceo">CEO</SelectItem>
-                        <SelectItem value="super_admin">Super Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveEmail(ae.id)}>
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
+                    {readOnly ? (
+                      <Badge variant="outline" className="capitalize text-xs">{ae.role.replace('_', ' ')}</Badge>
+                    ) : (
+                      <>
+                        <Select
+                          value={ae.role}
+                          onValueChange={(v) => handleRoleChange(ae.id, v)}
+                        >
+                          <SelectTrigger className="w-[140px] h-8 text-xs">
+                            <SelectValue>{ROLE_LABELS[ae.role]}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="team_member">Team Member</SelectItem>
+                            <SelectItem value="ceo">CEO</SelectItem>
+                            <SelectItem value="super_admin">Super Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveEmail(ae.id)}>
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )
               })}

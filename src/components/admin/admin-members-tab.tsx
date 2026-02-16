@@ -13,6 +13,7 @@ interface AdminMembersTabProps {
   members: Profile[]
   currentUserId: string
   onRefresh: () => void
+  readOnly?: boolean
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -21,7 +22,7 @@ const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
 }
 
-export function AdminMembersTab({ members, currentUserId, onRefresh }: AdminMembersTabProps) {
+export function AdminMembersTab({ members, currentUserId, onRefresh, readOnly = false }: AdminMembersTabProps) {
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
     member: Profile | null
@@ -87,29 +88,35 @@ export function AdminMembersTab({ members, currentUserId, onRefresh }: AdminMemb
                     </div>
                     <div className="flex items-center gap-2">
                       {!m.is_active && <Badge variant="destructive" className="text-xs">Inactive</Badge>}
-                      <Select
-                        value={m.role}
-                        onValueChange={(v) => handleRoleSelect(m, v)}
-                        disabled={isSelf}
-                      >
-                        <SelectTrigger className="w-[140px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="team_member">Team Member</SelectItem>
-                          <SelectItem value="ceo">CEO</SelectItem>
-                          <SelectItem value="super_admin">Super Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {!isSelf && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => handleToggleActive(m)}
-                        >
-                          {m.is_active ? 'Deactivate' : 'Activate'}
-                        </Button>
+                      {readOnly ? (
+                        <Badge variant="outline" className="capitalize text-xs">{m.role.replace('_', ' ')}</Badge>
+                      ) : (
+                        <>
+                          <Select
+                            value={m.role}
+                            onValueChange={(v) => handleRoleSelect(m, v)}
+                            disabled={isSelf}
+                          >
+                            <SelectTrigger className="w-[140px] h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="team_member">Team Member</SelectItem>
+                              <SelectItem value="ceo">CEO</SelectItem>
+                              <SelectItem value="super_admin">Super Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {!isSelf && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => handleToggleActive(m)}
+                            >
+                              {m.is_active ? 'Deactivate' : 'Activate'}
+                            </Button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

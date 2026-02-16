@@ -9,6 +9,7 @@ import { AdminMembersTab } from './admin-members-tab'
 import { AdminAccessTab } from './admin-access-tab'
 import { Loader2 } from 'lucide-react'
 import type { Profile, AllowedEmail } from '@/lib/types'
+import { isSuperAdmin } from '@/lib/utils/roles'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
 import { createRequestGuard, withTimeout } from '@/lib/utils/async'
 
@@ -91,6 +92,8 @@ export function AdminDashboardPanel() {
     )
   }
 
+  const readOnly = isSuperAdmin(profile.role)
+
   return (
     <div className="space-y-4">
       {refreshing && (
@@ -121,7 +124,7 @@ export function AdminDashboardPanel() {
         </TabsContent>
 
         <TabsContent value="members">
-          <AdminMembersTab members={members} currentUserId={profile.id} onRefresh={refresh} />
+          <AdminMembersTab members={members} currentUserId={profile.id} onRefresh={refresh} readOnly={readOnly} />
         </TabsContent>
 
         <TabsContent value="access">
@@ -130,6 +133,7 @@ export function AdminDashboardPanel() {
             members={members}
             currentUserId={profile.id}
             onRefresh={refresh}
+            readOnly={readOnly}
           />
         </TabsContent>
       </Tabs>

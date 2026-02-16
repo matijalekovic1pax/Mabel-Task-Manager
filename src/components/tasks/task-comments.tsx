@@ -19,12 +19,14 @@ export function TaskComments({
   taskStatus,
   comments,
   onCommentAdded,
+  readOnly = false,
 }: {
   taskId: string
   taskSubmittedBy: string
   taskStatus: TaskStatus
   comments: CommentWithAuthor[]
   onCommentAdded: () => void
+  readOnly?: boolean
 }) {
   const { profile } = useAuth()
   const formRef = useRef<HTMLFormElement>(null)
@@ -115,20 +117,22 @@ export function TaskComments({
             <Separator />
           </div>
         )}
-        <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
-          {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
-          <Textarea name="content" placeholder="Add a comment..." required rows={2} />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="submit" size="sm" disabled={loading || providingInfo}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Comment
-            </Button>
-            {canProvideInfo && (
-              <Button type="button" size="sm" variant="secondary" disabled={loading || providingInfo} onClick={handleProvideInfo}>
-                {providingInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Provide Requested Info
+        {!readOnly && (
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
+            {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+            <Textarea name="content" placeholder="Add a comment..." required rows={2} />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="submit" size="sm" disabled={loading || providingInfo}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Comment
               </Button>
-            )}
-          </div>
-        </form>
+              {canProvideInfo && (
+                <Button type="button" size="sm" variant="secondary" disabled={loading || providingInfo} onClick={handleProvideInfo}>
+                  {providingInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Provide Requested Info
+                </Button>
+              )}
+            </div>
+          </form>
+        )}
       </CardContent>
     </Card>
   )

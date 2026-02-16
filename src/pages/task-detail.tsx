@@ -17,7 +17,7 @@ import { TaskComments } from '@/components/tasks/task-comments'
 import { formatDateTime, formatDeadline, formatRelativeTime, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
 import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History } from 'lucide-react'
-import { hasAdminAccess } from '@/lib/utils/roles'
+import { hasAdminAccess, isCeo, isSuperAdmin } from '@/lib/utils/roles'
 import { toast } from 'sonner'
 import type { TaskWithDetails, Profile } from '@/lib/types'
 
@@ -56,6 +56,8 @@ export function TaskDetailPage() {
   const [error, setError] = useState<string | null>(null)
 
   const isAdmin = hasAdminAccess(profile?.role)
+  const canWrite = isCeo(profile?.role)
+  const readOnly = isSuperAdmin(profile?.role)
 
   const refresh = useCallback(async () => {
     if (!id) {
@@ -78,12 +80,12 @@ export function TaskDetailPage() {
   }, [refresh])
 
   useEffect(() => {
-    if (!isAdmin) return
+    if (!canWrite) return
 
     getActiveTeamMembers()
       .then(setTeamMembers)
       .catch(() => {})
-  }, [isAdmin])
+  }, [canWrite])
 
   async function handleMarkReady() {
     if (!task) return
@@ -125,7 +127,7 @@ export function TaskDetailPage() {
   }
 
   const isFinal = STATUS_CONFIG[task.status]?.isFinal ?? false
-  const canRunAdminActions = isAdmin && !isFinal
+  const canRunAdminActions = canWrite && !isFinal
   const canDelegate = canRunAdminActions && task.status !== 'delegated'
   const canMarkReady = !isAdmin && task.status === 'delegated' && task.assigned_to === profile?.id
   const overdue = task.deadline ? isOverdue(task.deadline) && !isFinal : false
@@ -279,6 +281,7 @@ export function TaskDetailPage() {
         taskStatus={task.status}
         comments={task.comments}
         onCommentAdded={refresh}
+        readOnly={readOnly}
       />
     </div>
   )

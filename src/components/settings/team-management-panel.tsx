@@ -17,9 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, UserPlus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Profile, AllowedEmail } from '@/lib/types'
+import { isSuperAdmin } from '@/lib/utils/roles'
 
 export function TeamManagementPanel() {
   const { profile } = useAuth()
+  const readOnly = isSuperAdmin(profile?.role)
   const [members, setMembers] = useState<Profile[]>([])
   const [allowedEmails, setAllowedEmails] = useState<AllowedEmail[]>([])
   const [loading, setLoading] = useState(true)
@@ -90,35 +92,37 @@ export function TeamManagementPanel() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />Add Allowed Email
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAddEmail} className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 min-w-[200px] space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input id="email" name="email" type="email" placeholder="user@company.com" required />
-            </div>
-            <div className="w-40 space-y-2">
-              <Label>Role</Label>
-              <Select name="role" defaultValue="team_member">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="team_member">Team Member</SelectItem>
-                  <SelectItem value="ceo">CEO</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" disabled={addingEmail}>
-              {addingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Add
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {!readOnly && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />Add Allowed Email
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddEmail} className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[200px] space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input id="email" name="email" type="email" placeholder="user@company.com" required />
+              </div>
+              <div className="w-40 space-y-2">
+                <Label>Role</Label>
+                <Select name="role" defaultValue="team_member">
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="team_member">Team Member</SelectItem>
+                    <SelectItem value="ceo">CEO</SelectItem>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" disabled={addingEmail}>
+                {addingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Add
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader><CardTitle>Allowed Emails</CardTitle></CardHeader>
@@ -133,9 +137,11 @@ export function TeamManagementPanel() {
                     <span className="text-sm">{ae.email}</span>
                     <Badge variant="outline" className="capitalize text-xs">{ae.role.replace('_', ' ')}</Badge>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => handleRemoveEmail(ae.id)}>
-                    <Trash2 className="h-4 w-4 text-muted-foreground" />
-                  </Button>
+                  {!readOnly && (
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveEmail(ae.id)}>
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -169,7 +175,7 @@ export function TeamManagementPanel() {
                     <Badge variant="outline" className="capitalize text-xs">{m.role.replace('_', ' ')}</Badge>
                     {!m.is_active && <Badge variant="destructive" className="text-xs">Inactive</Badge>}
                   </div>
-                  {m.id !== profile?.id && (
+                  {!readOnly && m.id !== profile?.id && (
                     <Button variant="outline" size="sm" onClick={() => handleToggleActive(m.id, m.is_active)}>
                       {m.is_active ? 'Deactivate' : 'Activate'}
                     </Button>

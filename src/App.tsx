@@ -13,7 +13,7 @@ const DashboardPage = lazy(() => import('@/pages/dashboard').then((m) => ({ defa
 const TasksPage = lazy(() => import('@/pages/tasks').then((m) => ({ default: m.TasksPage })))
 const NewTaskPage = lazy(() => import('@/pages/new-task').then((m) => ({ default: m.NewTaskPage })))
 const TaskDetailPage = lazy(() => import('@/pages/task-detail').then((m) => ({ default: m.TaskDetailPage })))
-const NotificationsPage = lazy(() => import('@/pages/notifications').then((m) => ({ default: m.NotificationsPage })))
+const ActivityPage = lazy(() => import('@/pages/activity').then((m) => ({ default: m.ActivityPage })))
 const SettingsPage = lazy(() => import('@/pages/settings').then((m) => ({ default: m.SettingsPage })))
 const TeamManagementPage = lazy(() => import('@/pages/team-management').then((m) => ({ default: m.TeamManagementPage })))
 const AdminPage = lazy(() => import('@/pages/admin').then((m) => ({ default: m.AdminPage })))
@@ -47,7 +47,7 @@ export default function App() {
               <Route path="tasks" element={<TasksPage />} />
               <Route path="tasks/new" element={<NewTaskPage />} />
               <Route path="tasks/:id" element={<TaskDetailPage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
+              <Route path="activity" element={<ActivityPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route
                 path="settings/team"

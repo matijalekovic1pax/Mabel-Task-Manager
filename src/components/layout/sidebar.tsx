@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { hasAdminAccess } from '@/lib/utils/roles'
-import { LayoutDashboard, ListTodo, PlusCircle, Bell, Settings, Users, Shield, LogOut } from 'lucide-react'
+import { LayoutDashboard, ListTodo, PlusCircle, Activity, Settings, Users, Shield, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
@@ -12,7 +12,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, color: 'text-violet-500' },
   { to: '/tasks', label: 'Tasks', icon: ListTodo, color: 'text-blue-500' },
   { to: '/tasks/new', label: 'New Task', icon: PlusCircle, color: 'text-emerald-500' },
-  { to: '/notifications', label: 'Notifications', icon: Bell, color: 'text-amber-500' },
+  { to: '/activity', label: 'Activity', icon: Activity, color: 'text-amber-500' },
   { to: '/settings', label: 'Settings', icon: Settings, color: 'text-slate-400' },
 ]
 

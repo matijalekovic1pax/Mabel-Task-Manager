@@ -184,7 +184,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (result.state === 'session_expired') {
             forceExpireSession()
           } else {
-            setProfile(result.profile)
+            // Use functional update to keep a stable object reference when the
+            // profile data hasn't changed. This prevents downstream useCallback /
+            // useEffect hooks (Realtime subscriptions, refresh callbacks) from
+            // being recreated on every TOKEN_REFRESHED or double StrictMode mount.
+            setProfile((prev) => {
+              if (
+                prev &&
+                result.profile &&
+                prev.id === result.profile.id &&
+                prev.updated_at === result.profile.updated_at
+              ) {
+                return prev
+              }
+              return result.profile
+            })
             setAuthState(result.state)
           }
         })
@@ -219,7 +233,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return
     const result = await fetchProfile(user.id)
     if (result.profile) {
-      setProfile(result.profile)
+      setProfile((prev) => {
+        if (
+          prev &&
+          result.profile &&
+          prev.id === result.profile.id &&
+          prev.updated_at === result.profile.updated_at
+        ) {
+          return prev
+        }
+        return result.profile
+      })
     }
   }, [user, fetchProfile])
 

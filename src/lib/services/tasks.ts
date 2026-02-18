@@ -229,6 +229,19 @@ export async function delegateTask(
 }
 
 // ---------------------------------------------------------------------------
+// Delete a task (submitter can delete their own; super_admin can delete any)
+// ---------------------------------------------------------------------------
+
+export async function deleteTask(taskId: string) {
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('id', taskId)
+
+  if (error) throw error
+}
+
+// ---------------------------------------------------------------------------
 // Archive a task
 // ---------------------------------------------------------------------------
 

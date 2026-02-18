@@ -1,13 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { getTask, transitionTask } from '@/lib/services/tasks'
+import { getTask, transitionTask, deleteTask } from '@/lib/services/tasks'
 import { getActiveTeamMembers } from '@/lib/services/team'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { TaskStatusBadge } from '@/components/tasks/task-status-badge'
 import { TaskPriorityBadge } from '@/components/tasks/task-priority-badge'
 import { TaskCategoryIcon } from '@/components/tasks/task-category-icon'
@@ -16,7 +24,7 @@ import { TaskDelegationForm } from '@/components/tasks/task-delegation-form'
 import { TaskComments } from '@/components/tasks/task-comments'
 import { formatDateTime, formatDeadline, formatRelativeTime, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
-import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History } from 'lucide-react'
+import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History, Trash2 } from 'lucide-react'
 import { hasAdminAccess, isCeo, isSuperAdmin } from '@/lib/utils/roles'
 import { toast } from 'sonner'
 import type { TaskWithDetails, Profile } from '@/lib/types'
@@ -49,10 +57,13 @@ function getNextActionOwner(task: TaskWithDetails): string {
 export function TaskDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { profile } = useAuth()
+  const navigate = useNavigate()
   const [task, setTask] = useState<TaskWithDetails | null>(null)
   const [teamMembers, setTeamMembers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [markingReady, setMarkingReady] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const isAdmin = hasAdminAccess(profile?.role)
@@ -104,6 +115,21 @@ export function TaskDetailPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!task) return
+    setDeleting(true)
+
+    try {
+      await deleteTask(task.id)
+      toast.success('Task deleted')
+      navigate('/tasks', { replace: true })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete task')
+      setDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-4xl space-y-6">
@@ -131,10 +157,43 @@ export function TaskDetailPage() {
   const canDelegate = canRunAdminActions && task.status !== 'delegated'
   const canMarkReady = !isAdmin && task.status === 'delegated' && task.assigned_to === profile?.id
   const overdue = task.deadline ? isOverdue(task.deadline) && !isFinal : false
+  const canDelete = isSuperAdmin(profile?.role) || profile?.id === task.submitted_by
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Button variant="ghost" asChild><Link to="/tasks"><ArrowLeft className="mr-2 h-4 w-4" />Back to Tasks</Link></Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" asChild><Link to="/tasks"><ArrowLeft className="mr-2 h-4 w-4" />Back to Tasks</Link></Button>
+        {canDelete && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Task
+          </Button>
+        )}
+      </div>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete task?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete <span className="font-medium">{task.reference_number}</span> and all its comments and history. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>

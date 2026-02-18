@@ -15,7 +15,8 @@
       "Bash(ls \"c:\\\\Users\\\\1Pax Mateja\\\\Documents\\\\Mabel Task Manager\\\\src\\\\lib\\\\services\"\" 2>nul && ls \"c:Users1Pax MatejaDocumentsMabel Task Managersrccontexts\"\")",
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
-      "Bash(npx vite build)"
+      "Bash(npx vite build)",
+      "Bash(powershell.exe -NoProfile:*)"
     ]
   }
 }

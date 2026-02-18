@@ -15,6 +15,9 @@ import {
   isSessionExpiredError,
 } from '@/lib/supabase/errors'
 
+const SESSION_DURATION_MS = 2 * 60 * 60 * 1000 // 2 hours
+const SESSION_START_KEY = 'mabel_session_start'
+
 // ---------------------------------------------------------------------------
 // Context shape
 // ---------------------------------------------------------------------------
@@ -48,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>('loading')
   const initialized = useRef(false)
   const sessionExpiredRef = useRef(false)
+  const sessionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loading = authState === 'loading'
 
   // Fetch the profile row for the given user id.
@@ -86,6 +90,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Force-expire the session: sign out locally and transition to session_expired.
+  const forceExpireSession = useCallback(() => {
+    sessionExpiredRef.current = true
+    localStorage.removeItem(SESSION_START_KEY)
+    supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+    setUser(null)
+    setProfile(null)
+    setAuthState('session_expired')
+  }, [])
+
+  // Schedule (or reschedule) the auto-expiry timer based on when the session started.
+  // Returns true if the session is already expired, false otherwise.
+  const scheduleSessionExpiry = useCallback((): boolean => {
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current)
+      sessionTimeoutRef.current = null
+    }
+
+    const raw = localStorage.getItem(SESSION_START_KEY)
+    const startTime = raw ? parseInt(raw, 10) : null
+
+    if (!startTime) {
+      // No start time recorded — treat as expired (safety fallback).
+      return true
+    }
+
+    const elapsed = Date.now() - startTime
+    if (elapsed >= SESSION_DURATION_MS) {
+      return true
+    }
+
+    const remaining = SESSION_DURATION_MS - elapsed
+    sessionTimeoutRef.current = setTimeout(() => {
+      forceExpireSession()
+    }, remaining)
+
+    return false
+  }, [forceExpireSession])
+
   // Use onAuthStateChange as the single source of truth (Supabase recommended).
   // It fires INITIAL_SESSION on mount, then SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED.
   //
@@ -101,11 +144,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       initialized.current = true
 
       if (!session?.user) {
+        if (sessionTimeoutRef.current) {
+          clearTimeout(sessionTimeoutRef.current)
+          sessionTimeoutRef.current = null
+        }
         setUser(null)
         setProfile(null)
         setAuthState(
           sessionExpiredRef.current ? 'session_expired' : 'unauthenticated',
         )
+        return
+      }
+
+      // On SIGNED_IN, record the session start time for the 2-hour clock.
+      if (event === 'SIGNED_IN') {
+        localStorage.setItem(SESSION_START_KEY, Date.now().toString())
+      }
+
+      // Check if the 2-hour limit has already been exceeded.
+      const alreadyExpired = scheduleSessionExpiry()
+      if (alreadyExpired) {
+        // Run in setTimeout to avoid calling signOut inside the auth lock.
+        setTimeout(() => { forceExpireSession() }, 0)
         return
       }
 
@@ -122,11 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTimeout(() => {
         fetchProfile(session.user.id).then((result) => {
           if (result.state === 'session_expired') {
-            sessionExpiredRef.current = true
-            supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-            setUser(null)
-            setProfile(null)
-            setAuthState('session_expired')
+            forceExpireSession()
           } else {
             setProfile(result.profile)
             setAuthState(result.state)
@@ -152,8 +208,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe()
       clearTimeout(timeout)
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current)
+      }
     }
-  }, [fetchProfile])
+  }, [fetchProfile, scheduleSessionExpiry, forceExpireSession])
 
   // Re-fetch the profile (e.g. after the user edits their name/department)
   const refreshProfile = useCallback(async () => {
@@ -184,6 +243,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign out
   const signOut = useCallback(async () => {
     sessionExpiredRef.current = false
+    localStorage.removeItem(SESSION_START_KEY)
+
+    if (sessionTimeoutRef.current) {
+      clearTimeout(sessionTimeoutRef.current)
+      sessionTimeoutRef.current = null
+    }
 
     try {
       // Local scope avoids logout failures caused by upstream token revoke issues.

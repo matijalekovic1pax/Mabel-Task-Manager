@@ -126,6 +126,19 @@ export async function updateMemberRole(
 }
 
 // ---------------------------------------------------------------------------
+// Remove a team member (delete their profile record)
+// ---------------------------------------------------------------------------
+
+export async function removeTeamMember(memberId: string) {
+  const { error } = await supabase
+    .from('profiles')
+    .delete()
+    .eq('id', memberId)
+
+  if (error) throw error
+}
+
+// ---------------------------------------------------------------------------
 // Update the role for an allowed email entry
 // ---------------------------------------------------------------------------
 

@@ -15,7 +15,7 @@ interface NavItem {
 const ceoItems: NavItem[] = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
   { to: '/tasks', label: 'Tasks', icon: ListTodo },
-  { to: '/activity', label: 'Activity', icon: Activity },
+  { to: '/tasks/new', label: 'New', icon: PlusCircle, isCenter: true },
   { to: '/admin', label: 'Admin', icon: Shield },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]

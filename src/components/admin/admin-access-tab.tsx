@@ -70,66 +70,95 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
 
   return (
     <div className="space-y-6">
+      {/* Add email form */}
       {!readOnly && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <UserPlus className="h-5 w-5" />Add Allowed Email
+              <UserPlus className="h-5 w-5" />
+              Invite a New User
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleAddEmail} className="flex flex-wrap items-end gap-3">
-              <div className="flex-1 min-w-[200px] space-y-2">
-                <Label htmlFor="admin-email">Email Address</Label>
-                <Input id="admin-email" name="email" type="email" placeholder="user@company.com" required />
+            <form onSubmit={handleAddEmail} className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="flex-1 space-y-1.5">
+                  <Label htmlFor="admin-email">Email Address</Label>
+                  <Input
+                    id="admin-email"
+                    name="email"
+                    type="email"
+                    placeholder="colleague@company.com"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Role</Label>
+                  <Select name="role" defaultValue="team_member">
+                    <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="team_member">Team Member</SelectItem>
+                      <SelectItem value="ceo">CEO</SelectItem>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="w-40 space-y-2">
-                <Label>Role</Label>
-                <Select name="role" defaultValue="team_member">
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="team_member">Team Member</SelectItem>
-                    <SelectItem value="ceo">CEO</SelectItem>
-                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" disabled={addingEmail}>
-                {addingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Add
+              <Button type="submit" disabled={addingEmail} className="w-full sm:w-auto">
+                {addingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Send Invite
               </Button>
             </form>
           </CardContent>
         </Card>
       )}
 
+      {/* Allowed emails list */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Allowed Emails</CardTitle></CardHeader>
-        <CardContent>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Allowed Emails
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              ({allowedEmails.length})
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
           {allowedEmails.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No allowed emails configured.</p>
+            <p className="p-6 text-sm text-muted-foreground">No allowed emails configured.</p>
           ) : (
             <div className="divide-y">
               {allowedEmails.map((ae) => {
                 const hasSignedUp = memberEmails.has(ae.email.toLowerCase())
                 return (
-                  <div key={ae.id} className="flex flex-wrap items-center gap-3 py-3">
-                    <div className="min-w-0 flex-1">
-                      <span className="text-sm">{ae.email}</span>
+                  <div key={ae.id} className="p-4 space-y-2">
+                    {/* Email + status */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="truncate text-sm font-medium">{ae.email}</span>
                       {hasSignedUp ? (
-                        <Badge variant="outline" className="ml-2 text-xs text-emerald-600 border-emerald-200">Joined</Badge>
+                        <Badge variant="outline" className="shrink-0 text-xs text-emerald-600 border-emerald-200">
+                          Joined
+                        </Badge>
                       ) : (
-                        <Badge variant="outline" className="ml-2 text-xs text-amber-600 border-amber-200">Pending</Badge>
+                        <Badge variant="outline" className="shrink-0 text-xs text-amber-600 border-amber-200">
+                          Pending
+                        </Badge>
                       )}
                     </div>
+                    {/* Controls */}
                     {readOnly ? (
-                      <Badge variant="outline" className="capitalize text-xs">{ae.role.replace('_', ' ')}</Badge>
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {ae.role.replace('_', ' ')}
+                      </Badge>
                     ) : (
-                      <>
+                      <div className="flex items-center gap-2">
                         <Select
                           value={ae.role}
                           onValueChange={(v) => handleRoleChange(ae.id, v)}
                         >
-                          <SelectTrigger className="w-[140px] h-8 text-xs">
+                          <SelectTrigger className="h-8 w-36 text-xs">
                             <SelectValue>{ROLE_LABELS[ae.role]}</SelectValue>
                           </SelectTrigger>
                           <SelectContent>
@@ -138,10 +167,15 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
                             <SelectItem value="super_admin">Super Admin</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button variant="ghost" size="icon" onClick={() => handleRemoveEmail(ae.id)}>
-                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleRemoveEmail(ae.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </>
+                      </div>
                     )}
                   </div>
                 )

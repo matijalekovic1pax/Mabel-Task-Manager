@@ -92,7 +92,7 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
                     required
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="w-full space-y-1.5 sm:w-auto">
                   <Label>Role</Label>
                   <Select name="role" defaultValue="team_member">
                     <SelectTrigger className="w-full sm:w-40">
@@ -153,12 +153,12 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
                         {ae.role.replace('_', ' ')}
                       </Badge>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Select
                           value={ae.role}
                           onValueChange={(v) => handleRoleChange(ae.id, v)}
                         >
-                          <SelectTrigger className="h-8 w-36 text-xs">
+                          <SelectTrigger className="h-8 w-full text-xs sm:w-36">
                             <SelectValue>{ROLE_LABELS[ae.role]}</SelectValue>
                           </SelectTrigger>
                           <SelectContent>
@@ -168,9 +168,18 @@ export function AdminAccessTab({ allowedEmails, members, currentUserId, onRefres
                           </SelectContent>
                         </Select>
                         <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-full text-xs sm:hidden"
+                          onClick={() => handleRemoveEmail(ae.id)}
+                        >
+                          <Trash2 className="mr-1 h-4 w-4" />
+                          Remove
+                        </Button>
+                        <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          className="hidden h-8 w-8 text-muted-foreground hover:text-destructive sm:inline-flex"
                           onClick={() => handleRemoveEmail(ae.id)}
                         >
                           <Trash2 className="h-4 w-4" />

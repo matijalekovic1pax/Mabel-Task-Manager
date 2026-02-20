@@ -112,13 +112,13 @@ export function AdminMembersTab({ members, currentUserId, onRefresh, readOnly = 
 
                     {/* Controls row */}
                     {!readOnly && (
-                      <div className="flex flex-wrap items-center gap-2 pl-12">
+                      <div className="flex flex-wrap items-center gap-2 pl-0 sm:pl-12">
                         <Select
                           value={m.role}
                           onValueChange={(v) => handleRoleSelect(m, v)}
                           disabled={isSelf}
                         >
-                          <SelectTrigger className="h-8 w-36 text-xs">
+                          <SelectTrigger className="h-8 w-full text-xs sm:w-36">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -132,15 +132,24 @@ export function AdminMembersTab({ members, currentUserId, onRefresh, readOnly = 
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-8 text-xs"
+                              className="h-8 w-full text-xs sm:w-auto"
                               onClick={() => handleToggleActive(m)}
                             >
                               {m.is_active ? 'Deactivate' : 'Activate'}
                             </Button>
                             <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-full text-xs sm:hidden"
+                              onClick={() => setConfirmAction({ type: 'delete', member: m })}
+                            >
+                              <Trash2 className="mr-1 h-4 w-4" />
+                              Remove
+                            </Button>
+                            <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              className="hidden h-8 w-8 text-muted-foreground hover:text-destructive sm:inline-flex"
                               onClick={() => setConfirmAction({ type: 'delete', member: m })}
                             >
                               <Trash2 className="h-4 w-4" />

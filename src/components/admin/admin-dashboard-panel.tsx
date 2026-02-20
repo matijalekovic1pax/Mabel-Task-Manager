@@ -9,7 +9,6 @@ import { AdminMembersTab } from './admin-members-tab'
 import { AdminAccessTab } from './admin-access-tab'
 import { Loader2 } from 'lucide-react'
 import type { Profile, AllowedEmail } from '@/lib/types'
-import { isSuperAdmin } from '@/lib/utils/roles'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
 import { createRequestGuard, withTimeout } from '@/lib/utils/async'
 
@@ -92,7 +91,8 @@ export function AdminDashboardPanel() {
     )
   }
 
-  const readOnly = isSuperAdmin(profile.role)
+  const canManageUsers = profile.role === 'super_admin'
+  const readOnly = !canManageUsers
 
   return (
     <div className="space-y-4">
@@ -109,6 +109,12 @@ export function AdminDashboardPanel() {
           <Button variant="outline" size="sm" onClick={() => void refresh()}>
             Retry
           </Button>
+        </div>
+      )}
+
+      {readOnly && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+          Only super admin can manage users. You currently have read-only access to Members and Access.
         </div>
       )}
 

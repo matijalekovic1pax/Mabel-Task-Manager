@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { AuthProvider } from '@/contexts/auth-context'
 import { Toaster } from '@/components/ui/sonner'
@@ -15,7 +15,6 @@ const NewTaskPage = lazy(() => import('@/pages/new-task').then((m) => ({ default
 const TaskDetailPage = lazy(() => import('@/pages/task-detail').then((m) => ({ default: m.TaskDetailPage })))
 const ActivityPage = lazy(() => import('@/pages/activity').then((m) => ({ default: m.ActivityPage })))
 const SettingsPage = lazy(() => import('@/pages/settings').then((m) => ({ default: m.SettingsPage })))
-const TeamManagementPage = lazy(() => import('@/pages/team-management').then((m) => ({ default: m.TeamManagementPage })))
 const AdminPage = lazy(() => import('@/pages/admin').then((m) => ({ default: m.AdminPage })))
 
 function RouteLoader() {
@@ -52,9 +51,7 @@ export default function App() {
               <Route
                 path="settings/team"
                 element={
-                  <ProtectedRoute requireRole="ceo">
-                    <TeamManagementPage />
-                  </ProtectedRoute>
+                  <Navigate to="/admin" replace />
                 }
               />
               <Route

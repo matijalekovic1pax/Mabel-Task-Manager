@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { hasAdminAccess } from '@/lib/utils/roles'
-import { LayoutDashboard, ListTodo, PlusCircle, Activity, Settings, Users, Shield, LogOut } from 'lucide-react'
+import { LayoutDashboard, ListTodo, PlusCircle, Activity, Settings, Shield, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
@@ -18,7 +18,6 @@ const navItems = [
 
 const ceoOnlyItems = [
   { to: '/admin', label: 'Admin Dashboard', icon: Shield, color: 'text-rose-500' },
-  { to: '/settings/team', label: 'Team Management', icon: Users, color: 'text-pink-500' },
 ]
 
 export function Sidebar() {

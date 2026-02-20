@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { hasAdminAccess } from '@/lib/utils/roles'
 import { LayoutDashboard, ListTodo, PlusCircle, Activity, Settings, Shield } from 'lucide-react'
-import { cn } from '@/lib/utils/utils'
+import { cn } from '@/lib/utils'
 
 interface NavItem {
   to: string

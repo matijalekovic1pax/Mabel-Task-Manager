@@ -250,7 +250,7 @@ export function TasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-        <Button asChild>
+        <Button asChild className="hidden md:inline-flex">
           <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
         </Button>
       </div>

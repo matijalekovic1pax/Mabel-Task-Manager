@@ -257,7 +257,7 @@ export function DashboardPage() {
             {isCeo ? 'CEO Decision Center' : 'Submitted and delegated tasks in one view.'}
           </p>
         </div>
-        <Button asChild className="bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200">
+        <Button asChild className="hidden bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200 md:inline-flex">
           <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
         </Button>
       </div>
@@ -384,7 +384,7 @@ export function DashboardPage() {
                   <PlusCircle className="h-8 w-8 text-violet-400" />
                 </div>
                 <p className="mb-4 text-muted-foreground">No tasks yet. Submit your first task!</p>
-                <Button asChild className="bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200">
+                <Button asChild className="hidden bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200 md:inline-flex">
                   <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
                 </Button>
               </CardContent>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { getTask, transitionTask, deleteTask } from '@/lib/services/tasks'
@@ -24,7 +24,7 @@ import { TaskDelegationForm } from '@/components/tasks/task-delegation-form'
 import { TaskComments } from '@/components/tasks/task-comments'
 import { formatDateTime, formatDeadline, formatRelativeTime, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
-import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History, Trash2 } from 'lucide-react'
+import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History, Trash2, ChevronDown } from 'lucide-react'
 import { hasAdminAccess, isCeo, isSuperAdmin } from '@/lib/utils/roles'
 import { toast } from 'sonner'
 import type { TaskWithDetails, Profile } from '@/lib/types'
@@ -65,6 +65,7 @@ export function TaskDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const actionRef = useRef<HTMLDivElement>(null)
 
   const isAdmin = hasAdminAccess(profile?.role)
   const canWrite = isCeo(profile?.role)
@@ -113,6 +114,10 @@ export function TaskDetailPage() {
     } finally {
       setMarkingReady(false)
     }
+  }
+
+  function scrollToActions() {
+    actionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   async function handleDelete() {
@@ -174,6 +179,18 @@ export function TaskDetailPage() {
           </Button>
         )}
       </div>
+
+      {/* Mobile: quick-jump button for CEO actions */}
+      {canRunAdminActions && (
+        <Button
+          variant="outline"
+          onClick={scrollToActions}
+          className="md:hidden w-full border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+        >
+          <ChevronDown className="mr-2 h-4 w-4" />
+          Take Action on This Task
+        </Button>
+      )}
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
@@ -296,14 +313,16 @@ export function TaskDetailPage() {
         </Card>
       )}
 
-      {canRunAdminActions && <TaskResolutionForm task={task} onResolved={refresh} />}
-      {canDelegate && teamMembers.filter((m) => m.id !== profile?.id).length > 0 && (
-        <TaskDelegationForm
-          task={task}
-          teamMembers={teamMembers.filter((m) => m.id !== profile?.id)}
-          onDelegated={refresh}
-        />
-      )}
+      <div ref={actionRef}>
+        {canRunAdminActions && <TaskResolutionForm task={task} onResolved={refresh} />}
+        {canDelegate && teamMembers.filter((m) => m.id !== profile?.id).length > 0 && (
+          <TaskDelegationForm
+            task={task}
+            teamMembers={teamMembers.filter((m) => m.id !== profile?.id)}
+            onDelegated={refresh}
+          />
+        )}
+      </div>
 
       <Card>
         <CardHeader>

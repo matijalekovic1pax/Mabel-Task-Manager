@@ -11,7 +11,7 @@ import { TaskFilters } from '@/components/tasks/task-filters'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PlusCircle, Loader2 } from 'lucide-react'
-import { hasAdminAccess, isSuperAdmin } from '@/lib/utils/roles'
+import { hasAdminAccess } from '@/lib/utils/roles'
 import { supabase } from '@/lib/supabase/client'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
 import { createRequestGuard, withTimeout } from '@/lib/utils/async'
@@ -250,11 +250,9 @@ export function TasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-        {!isSuperAdmin(profile?.role) && (
-          <Button asChild>
-            <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
-          </Button>
-        )}
+        <Button asChild>
+          <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
+        </Button>
       </div>
 
       {refreshing && (

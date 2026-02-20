@@ -16,7 +16,7 @@ import {
   ListTodo,
   Loader2,
 } from 'lucide-react'
-import { hasAdminAccess, isSuperAdmin } from '@/lib/utils/roles'
+import { hasAdminAccess } from '@/lib/utils/roles'
 import type { TaskWithSubmitter } from '@/lib/types'
 import { supabase } from '@/lib/supabase/client'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
@@ -257,11 +257,9 @@ export function DashboardPage() {
             {isCeo ? 'CEO Decision Center' : 'Submitted and delegated tasks in one view.'}
           </p>
         </div>
-        {!isSuperAdmin(profile?.role) && (
-          <Button asChild className="bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200">
-            <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
-          </Button>
-        )}
+        <Button asChild className="bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200">
+          <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
+        </Button>
       </div>
 
       {refreshing && (

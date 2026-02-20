@@ -1,7 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { useAuth } from '@/contexts/auth-context'
-import { hasAdminAccess } from '@/lib/utils/roles'
-import { LayoutDashboard, ListTodo, PlusCircle, Activity, Settings, Shield } from 'lucide-react'
+import { LayoutDashboard, ListTodo, PlusCircle, Activity, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -12,15 +10,7 @@ interface NavItem {
   isCenter?: boolean
 }
 
-const ceoItems: NavItem[] = [
-  { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/tasks', label: 'Tasks', icon: ListTodo },
-  { to: '/tasks/new', label: 'New', icon: PlusCircle, isCenter: true },
-  { to: '/admin', label: 'Admin', icon: Shield },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
-
-const teamItems: NavItem[] = [
+const navItems: NavItem[] = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
   { to: '/tasks', label: 'Tasks', icon: ListTodo },
   { to: '/tasks/new', label: 'New', icon: PlusCircle, isCenter: true },
@@ -29,9 +19,7 @@ const teamItems: NavItem[] = [
 ]
 
 export function BottomNav() {
-  const { profile } = useAuth()
-  const isAdmin = hasAdminAccess(profile?.role)
-  const items = isAdmin ? ceoItems : teamItems
+  const items = navItems
 
   return (
     <nav

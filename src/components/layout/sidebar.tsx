@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { hasAdminAccess, isSuperAdmin } from '@/lib/utils/roles'
+import { hasAdminAccess } from '@/lib/utils/roles'
 import { LayoutDashboard, ListTodo, PlusCircle, Activity, Settings, Users, Shield, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -26,8 +26,6 @@ export function Sidebar() {
   const { profile, signOut } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
   const isAdmin = hasAdminAccess(profile?.role)
-  const readOnly = isSuperAdmin(profile?.role)
-  const visibleNavItems = readOnly ? navItems.filter((n) => n.to !== '/tasks/new') : navItems
 
   async function handleSignOut() {
     if (signingOut) return
@@ -51,7 +49,7 @@ export function Sidebar() {
         <h1 className="text-lg font-semibold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">Mabel</h1>
       </div>
       <nav className="flex-1 space-y-1 p-3">
-        {visibleNavItems.map((item) => (
+        {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

@@ -113,10 +113,10 @@ export function AdminDashboardPanel() {
       )}
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="members">Team Members</TabsTrigger>
-          <TabsTrigger value="access">Access Control</TabsTrigger>
+        <TabsList className="w-full">
+          <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
+          <TabsTrigger value="members" className="flex-1">Members</TabsTrigger>
+          <TabsTrigger value="access" className="flex-1">Access</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">

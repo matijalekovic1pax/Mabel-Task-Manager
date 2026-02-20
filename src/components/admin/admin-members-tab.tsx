@@ -112,7 +112,7 @@ export function AdminMembersTab({ members, currentUserId, onRefresh, readOnly = 
 
                     {/* Controls row */}
                     {!readOnly && (
-                      <div className="flex flex-wrap items-center gap-2 pl-13">
+                      <div className="flex flex-wrap items-center gap-2 pl-12">
                         <Select
                           value={m.role}
                           onValueChange={(v) => handleRoleSelect(m, v)}

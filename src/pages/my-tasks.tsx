@@ -180,7 +180,7 @@ export function MyTasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-light tracking-tight">My Tasks</h1>
+          <h1 className="text-2xl font-bold tracking-tight">My Tasks</h1>
           <p className="text-sm text-muted-foreground">General tasks assigned to you or created by you.</p>
         </div>
         <Button asChild className="hidden bg-foreground text-background hover:bg-foreground/90 md:inline-flex">

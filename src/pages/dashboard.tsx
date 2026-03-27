@@ -251,9 +251,8 @@ export function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-light tracking-tight text-foreground">
-            {getGreeting()},{' '}
-            <em>{profile?.full_name?.split(' ')[0]}</em>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {getGreeting()}, {profile?.full_name?.split(' ')[0]}
           </h1>
           <p className="text-sm text-muted-foreground">
             {isCeo ? 'CEO Decision Center' : 'Your tasks and requests in one view.'}
@@ -286,28 +285,28 @@ export function DashboardPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Needs Decision' : 'Open Tasks'}</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground/50" />
           </CardHeader>
-          <CardContent><p className="font-display text-3xl font-light text-foreground">{isCeo ? needsDecision.length : myOpen.length}</p></CardContent>
+          <CardContent><p className="text-3xl font-bold text-foreground">{isCeo ? needsDecision.length : myOpen.length}</p></CardContent>
         </Card>
         <Card className="shadow-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Waiting on Others' : 'Assigned to Me'}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground/50" />
           </CardHeader>
-          <CardContent><p className="font-display text-3xl font-light text-foreground">{isCeo ? waitingOnOthers.length : myAssigned.length}</p></CardContent>
+          <CardContent><p className="text-3xl font-bold text-foreground">{isCeo ? waitingOnOthers.length : myAssigned.length}</p></CardContent>
         </Card>
         <Card className="shadow-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Due Today' : 'Submitted by Me'}</CardTitle>
             <ListTodo className="h-4 w-4 text-muted-foreground/50" />
           </CardHeader>
-          <CardContent><p className="font-display text-3xl font-light text-foreground">{isCeo ? dueToday.length : mySubmitted.length}</p></CardContent>
+          <CardContent><p className="text-3xl font-bold text-foreground">{isCeo ? dueToday.length : mySubmitted.length}</p></CardContent>
         </Card>
         <Card className="shadow-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground/50" />
           </CardHeader>
-          <CardContent><p className="font-display text-3xl font-light text-foreground">{completed.length}</p></CardContent>
+          <CardContent><p className="text-3xl font-bold text-foreground">{completed.length}</p></CardContent>
         </Card>
       </div>
 

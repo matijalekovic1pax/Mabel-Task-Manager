@@ -56,13 +56,13 @@ export function Sidebar() {
       {/* Brand */}
       <div className="flex h-14 items-center border-b px-5 gap-3" style={{ borderColor: 'var(--sidebar-border)' }}>
         <div
-          className="flex h-7 w-7 items-center justify-center rounded-sm font-display text-sm font-medium"
+          className="flex h-7 w-7 items-center justify-center rounded-lg font-brand text-sm"
           style={{ background: 'var(--sidebar-primary)', color: 'var(--sidebar-primary-foreground)' }}
         >
           M
         </div>
         <span
-          className="font-display text-base tracking-wide"
+          className="text-[15px] font-semibold tracking-tight"
           style={{ color: 'var(--sidebar-primary)' }}
         >
           Mabel

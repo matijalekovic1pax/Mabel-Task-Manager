@@ -75,7 +75,7 @@ export function LoginPage() {
               'Real-time updates and notifications',
             ].map((item) => (
               <li key={item} className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--sidebar-foreground)', opacity: 0.65 }}>
-                <div className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--sidebar-foreground)', opacity: 0.5 }} />
+                <div className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--sidebar-primary)' }} />
                 {item}
               </li>
             ))}

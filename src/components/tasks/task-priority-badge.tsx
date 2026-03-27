@@ -2,17 +2,29 @@ import { Badge } from '@/components/ui/badge'
 import { PRIORITY_CONFIG } from '@/lib/utils/constants'
 import type { TaskPriority } from '@/lib/types'
 
-const priorityColors: Record<TaskPriority, string> = {
-  urgent: 'bg-foreground text-background border-foreground',
-  high: 'bg-foreground/10 text-foreground/80 border-foreground/20',
-  normal: 'bg-transparent text-muted-foreground border-border',
-  low: 'bg-transparent text-muted-foreground/60 border-border',
+const priorityStyles: Record<TaskPriority, string> = {
+  urgent: 'bg-red-50 text-red-700 border-red-300 font-semibold',
+  high:   'bg-orange-50 text-orange-600 border-orange-200',
+  normal: 'bg-transparent text-slate-400 border-transparent',
+  low:    'bg-transparent text-slate-300 border-transparent',
+}
+
+const priorityDot: Record<TaskPriority, string | null> = {
+  urgent: 'bg-red-500',
+  high:   'bg-orange-400',
+  normal: null,
+  low:    null,
 }
 
 export function TaskPriorityBadge({ priority }: { priority: TaskPriority }) {
   const config = PRIORITY_CONFIG[priority]
+  const dot = priorityDot[priority]
+
+  if (priority === 'low') return null
+
   return (
-    <Badge variant="outline" className={`font-medium ${priorityColors[priority]}`}>
+    <Badge variant="outline" className={`font-medium text-[11px] px-1.5 py-0 gap-1 ${priorityStyles[priority]}`}>
+      {dot && <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />}
       {config.label}
     </Badge>
   )

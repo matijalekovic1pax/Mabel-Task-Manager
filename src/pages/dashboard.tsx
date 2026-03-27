@@ -280,33 +280,33 @@ export function DashboardPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Needs Decision' : 'Open Tasks'}</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground/50" />
+        <Card className="shadow-[0_1px_2px_rgba(0,0,10,0.04),0_2px_8px_rgba(0,0,10,0.06)] border-0">
+          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{isCeo ? 'Needs Decision' : 'Open Tasks'}</CardTitle>
+            <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-foreground">{isCeo ? needsDecision.length : myOpen.length}</p></CardContent>
+          <CardContent className="px-5 pb-4"><p className="text-4xl font-bold tracking-tight text-foreground">{isCeo ? needsDecision.length : myOpen.length}</p></CardContent>
         </Card>
-        <Card className="shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Waiting on Others' : 'Assigned to Me'}</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground/50" />
+        <Card className="shadow-[0_1px_2px_rgba(0,0,10,0.04),0_2px_8px_rgba(0,0,10,0.06)] border-0">
+          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{isCeo ? 'Waiting on Others' : 'Assigned to Me'}</CardTitle>
+            <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground/40" />
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-foreground">{isCeo ? waitingOnOthers.length : myAssigned.length}</p></CardContent>
+          <CardContent className="px-5 pb-4"><p className="text-4xl font-bold tracking-tight text-foreground">{isCeo ? waitingOnOthers.length : myAssigned.length}</p></CardContent>
         </Card>
-        <Card className="shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Due Today' : 'Submitted by Me'}</CardTitle>
-            <ListTodo className="h-4 w-4 text-muted-foreground/50" />
+        <Card className="shadow-[0_1px_2px_rgba(0,0,10,0.04),0_2px_8px_rgba(0,0,10,0.06)] border-0">
+          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{isCeo ? 'Due Today' : 'Submitted by Me'}</CardTitle>
+            <ListTodo className="h-3.5 w-3.5 text-muted-foreground/40" />
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-foreground">{isCeo ? dueToday.length : mySubmitted.length}</p></CardContent>
+          <CardContent className="px-5 pb-4"><p className="text-4xl font-bold tracking-tight text-foreground">{isCeo ? dueToday.length : mySubmitted.length}</p></CardContent>
         </Card>
-        <Card className="shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground/50" />
+        <Card className="shadow-[0_1px_2px_rgba(0,0,10,0.04),0_2px_8px_rgba(0,0,10,0.06)] border-0">
+          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Completed</CardTitle>
+            <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground/40" />
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-foreground">{completed.length}</p></CardContent>
+          <CardContent className="px-5 pb-4"><p className="text-4xl font-bold tracking-tight text-foreground">{completed.length}</p></CardContent>
         </Card>
       </div>
 

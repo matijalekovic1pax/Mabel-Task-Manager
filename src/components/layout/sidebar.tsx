@@ -81,7 +81,7 @@ export function Sidebar() {
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150',
                 isActive
                   ? 'text-[var(--sidebar-primary-foreground)]'
-                  : 'text-[var(--sidebar-foreground)] hover:text-[var(--sidebar-primary)]',
+                  : 'text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
               )
             }
             style={({ isActive }) => isActive
@@ -93,7 +93,7 @@ export function Sidebar() {
               <>
                 <item.icon
                   className="h-4 w-4 shrink-0"
-                  style={{ opacity: isActive ? 1 : 0.65 }}
+                  style={{ opacity: isActive ? 1 : 0.5 }}
                 />
                 {item.label}
               </>
@@ -115,7 +115,7 @@ export function Sidebar() {
                     'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150',
                     isActive
                       ? 'text-[var(--sidebar-primary-foreground)]'
-                      : 'text-[var(--sidebar-foreground)] hover:text-[var(--sidebar-primary)]',
+                      : 'text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]',
                   )
                 }
                 style={({ isActive }) => isActive
@@ -127,7 +127,7 @@ export function Sidebar() {
                   <>
                     <item.icon
                       className="h-4 w-4 shrink-0"
-                      style={{ opacity: isActive ? 1 : 0.65 }}
+                      style={{ opacity: isActive ? 1 : 0.5 }}
                     />
                     {item.label}
                   </>

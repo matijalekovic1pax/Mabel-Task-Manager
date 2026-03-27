@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { hasAdminAccess } from '@/lib/utils/roles'
+import { hasAdminPanelAccess } from '@/lib/utils/roles'
 import { ProfileForm } from '@/components/settings/profile-form'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const { profile, signOut } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
-  const isAdmin = hasAdminAccess(profile?.role)
+  const isAdmin = hasAdminPanelAccess(profile?.role)
 
   async function handleSignOut() {
     if (signingOut) return

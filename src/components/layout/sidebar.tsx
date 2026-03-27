@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { hasAdminAccess } from '@/lib/utils/roles'
+import { hasAdminPanelAccess } from '@/lib/utils/roles'
 import {
   LayoutDashboard, ListTodo, PlusCircle, Activity,
   Settings, Shield, LogOut, CheckSquare,
@@ -29,7 +29,7 @@ export function Sidebar() {
   const navigate = useNavigate()
   const { profile, effectiveRole, signOut } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
-  const isAdmin = hasAdminAccess(effectiveRole)
+  const isAdmin = hasAdminPanelAccess(effectiveRole)
 
   async function handleSignOut() {
     if (signingOut) return

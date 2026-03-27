@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { Loader2 } from 'lucide-react'
 
-export function ProtectedRoute({ children, requireRole }: { children: React.ReactNode; requireRole?: 'ceo' | 'team_member' }) {
+export function ProtectedRoute({ children, requireRole }: { children: React.ReactNode; requireRole?: 'super_admin' | 'ceo' | 'team_member' }) {
   const { user, profile, effectiveRole, loading, authState } = useAuth()
 
   if (loading) {

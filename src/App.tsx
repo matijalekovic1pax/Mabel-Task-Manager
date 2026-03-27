@@ -59,7 +59,7 @@ export default function App() {
               <Route
                 path="admin"
                 element={
-                  <ProtectedRoute requireRole="ceo">
+                  <ProtectedRoute requireRole="super_admin">
                     <AdminPage />
                   </ProtectedRoute>
                 }

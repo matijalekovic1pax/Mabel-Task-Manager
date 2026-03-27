@@ -9,9 +9,14 @@ export function useEffectiveRole(): UserRole | null {
   return effectiveRole
 }
 
-/** Returns true if the role has admin-level access (CEO or super_admin). */
+/** Returns true if the role has admin-level access (CEO or super_admin) — used for task queue / CEO actions. */
 export function hasAdminAccess(role: UserRole | null | undefined): boolean {
   return role === 'ceo' || role === 'super_admin'
+}
+
+/** Returns true if the role can access the Admin panel — super_admin only. */
+export function hasAdminPanelAccess(role: UserRole | null | undefined): boolean {
+  return role === 'super_admin'
 }
 
 /** Returns true if the role is specifically the CEO (write-level admin access). */

@@ -288,22 +288,22 @@ export function TasksPage() {
       <TaskFilters />
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}
+        <div className="task-list">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16" />)}
         </div>
       ) : error && tasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-12">
-          <p className="text-muted-foreground">Could not load tasks.</p>
-          <Button variant="outline" className="mt-3" onClick={() => void refresh()}>
-            Retry
-          </Button>
+        <div className="task-list">
+          <div className="flex flex-col items-center gap-3 py-12">
+            <p className="text-sm text-muted-foreground">Could not load tasks.</p>
+            <Button variant="outline" size="sm" onClick={() => void refresh()}>Retry</Button>
+          </div>
         </div>
       ) : tasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-12">
-          <p className="text-muted-foreground">No tasks found.</p>
+        <div className="task-list">
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground">No tasks found.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="task-list">
           {tasks.map((task) => (
             <TaskCard key={task.id} task={task} />
           ))}

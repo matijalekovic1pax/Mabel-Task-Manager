@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { getCeoQueue, getMyAssignedTasks, getMySubmittedTasks, getMyAssignedGeneralTasks } from '@/lib/services/tasks'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TaskCard } from '@/components/tasks/task-card'
@@ -21,15 +20,7 @@ import type { TaskWithSubmitter } from '@/lib/types'
 import { supabase } from '@/lib/supabase/client'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
 import { createRequestGuard, withTimeout } from '@/lib/utils/async'
-
-const CATEGORY_COLORS: Record<string, string> = {
-  financial: 'bg-muted border-border text-foreground/75',
-  project: 'bg-muted border-border text-foreground/75',
-  hr_operations: 'bg-muted border-border text-foreground/75',
-  client_relations: 'bg-muted border-border text-foreground/75',
-  pr_marketing: 'bg-muted border-border text-foreground/75',
-  administrative: 'bg-muted border-border text-foreground/75',
-}
+import { cn } from '@/lib/utils'
 
 const FINAL_STATUSES = ['approved', 'rejected', 'resolved']
 const REFRESH_DEBOUNCE_MS = 300
@@ -235,15 +226,13 @@ export function DashboardPage() {
 
   if (error && tasks.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Dashboard unavailable</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <div className="task-list">
+        <div className="flex flex-col gap-3 px-5 py-8">
+          <p className="text-sm font-semibold">Dashboard unavailable</p>
           <p className="text-sm text-muted-foreground">{error}</p>
-          <Button onClick={() => void refresh()}>Retry</Button>
-        </CardContent>
-      </Card>
+          <Button size="sm" className="w-fit" onClick={() => void refresh()}>Retry</Button>
+        </div>
+      </div>
     )
   }
 
@@ -279,133 +268,109 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-[0_1px_2px_rgba(0,0,10,0.04),0_2px_8px_rgba(0,0,10,0.06)] border-0">
-          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{isCeo ? 'Needs Decision' : 'Open Tasks'}</CardTitle>
-            <Clock className="h-3.5 w-3.5 text-muted-foreground/40" />
-          </CardHeader>
-          <CardContent className="px-5 pb-4"><p className="text-4xl font-bold tracking-tight text-foreground">{isCeo ? needsDecision.length : myOpen.length}</p></CardContent>
-        </Card>
-        <Card className="shadow-[0_1px_2px_rgba(0,0,10,0.04),0_2px_8px_rgba(0,0,10,0.06)] border-0">
-          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{isCeo ? 'Waiting on Others' : 'Assigned to Me'}</CardTitle>
-            <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground/40" />
-          </CardHeader>
-          <CardContent className="px-5 pb-4"><p className="text-4xl font-bold tracking-tight text-foreground">{isCeo ? waitingOnOthers.length : myAssigned.length}</p></CardContent>
-        </Card>
-        <Card className="shadow-[0_1px_2px_rgba(0,0,10,0.04),0_2px_8px_rgba(0,0,10,0.06)] border-0">
-          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">{isCeo ? 'Due Today' : 'Submitted by Me'}</CardTitle>
-            <ListTodo className="h-3.5 w-3.5 text-muted-foreground/40" />
-          </CardHeader>
-          <CardContent className="px-5 pb-4"><p className="text-4xl font-bold tracking-tight text-foreground">{isCeo ? dueToday.length : mySubmitted.length}</p></CardContent>
-        </Card>
-        <Card className="shadow-[0_1px_2px_rgba(0,0,10,0.04),0_2px_8px_rgba(0,0,10,0.06)] border-0">
-          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-5">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Completed</CardTitle>
-            <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground/40" />
-          </CardHeader>
-          <CardContent className="px-5 pb-4"><p className="text-4xl font-bold tracking-tight text-foreground">{completed.length}</p></CardContent>
-        </Card>
+      {/* Unified stats block */}
+      <div className="task-list grid grid-cols-2 sm:grid-cols-4">
+        {[
+          { label: isCeo ? 'Needs Decision' : 'Open Tasks',    value: isCeo ? needsDecision.length    : myOpen.length,      icon: Clock },
+          { label: isCeo ? 'Waiting on Others' : 'Assigned',   value: isCeo ? waitingOnOthers.length  : myAssigned.length,  icon: AlertTriangle },
+          { label: isCeo ? 'Due Today' : 'Submitted',          value: isCeo ? dueToday.length         : mySubmitted.length, icon: ListTodo },
+          { label: 'Completed',                                  value: completed.length,                                     icon: CheckCircle2 },
+        ].map((stat, i) => (
+          <div
+            key={stat.label}
+            className={cn(
+              'px-6 py-5',
+              i > 0 && 'border-l border-border/60',
+              i >= 2 && 'border-t border-border/60 sm:border-t-0',
+            )}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">{stat.label}</p>
+            <p className="mt-1.5 text-3xl font-bold tracking-tight text-foreground">{stat.value}</p>
+          </div>
+        ))}
       </div>
 
       {isCeo && categoryBreakdown.some((c) => c.count > 0) && (
-        <Card className="shadow-sm">
-          <CardHeader><CardTitle className="text-base">Needs Decision by Category</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {categoryBreakdown.filter((c) => c.count > 0).map((c) => (
-                <div key={c.key} className={`flex items-center justify-between rounded-lg border px-4 py-3 ${CATEGORY_COLORS[c.key] ?? ''}`}>
-                  <span className="text-sm font-medium">{c.label}</span>
-                  <span className="text-lg font-bold">{c.count}</span>
-                </div>
-              ))}
+        <div className="task-list">
+          {categoryBreakdown.filter((c) => c.count > 0).map((c) => (
+            <div key={c.key} className="flex items-center justify-between px-5 py-3">
+              <span className="text-sm font-medium text-foreground/80">{c.label}</span>
+              <span className="text-sm font-bold tabular-nums">{c.count}</span>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       )}
 
       {isCeo ? (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Needs Decision</h2>
-            {needsDecision.length === 0 ? (
-              <Card className="shadow-sm">
-                <CardContent className="py-6 text-sm text-muted-foreground">No items currently require your decision.</CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {needsDecision.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
-              </div>
-            )}
+            <h2 className="mb-2.5 text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">Needs Decision</h2>
+            <div className="task-list">
+              {needsDecision.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-muted-foreground">No items currently require your decision.</p>
+              ) : (
+                needsDecision.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)
+              )}
+            </div>
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Waiting on Others</h2>
-            {waitingOnOthers.length === 0 ? (
-              <Card className="shadow-sm">
-                <CardContent className="py-6 text-sm text-muted-foreground">No tasks are currently blocked on team follow-up.</CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {waitingOnOthers.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
-              </div>
-            )}
+            <h2 className="mb-2.5 text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">Waiting on Others</h2>
+            <div className="task-list">
+              {waitingOnOthers.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-muted-foreground">No tasks blocked on follow-up.</p>
+              ) : (
+                waitingOnOthers.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)
+              )}
+            </div>
           </section>
 
-          <section>
-            <h2 className="mb-3 text-lg font-semibold">Completed</h2>
-            {completed.length === 0 ? (
-              <Card className="shadow-sm">
-                <CardContent className="py-6 text-sm text-muted-foreground">No completed tasks yet.</CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
+          {completed.length > 0 && (
+            <section>
+              <h2 className="mb-2.5 text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">Completed</h2>
+              <div className="task-list">
                 {completed.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
               </div>
-            )}
-          </section>
+            </section>
+          )}
         </div>
       ) : (
-        <div className="space-y-6">
-          {/* General tasks assigned to me */}
+        <div className="space-y-5">
           {generalTasks.length > 0 && (
             <section>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Tasks Assigned to Me</h2>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/my-tasks">View all</Link>
-                </Button>
+              <div className="mb-2.5 flex items-center justify-between">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">Assigned to Me</h2>
+                <Link to="/my-tasks" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  View all
+                </Link>
               </div>
-              <div className="space-y-3">
+              <div className="task-list">
                 {generalTasks.slice(0, 5).map((task) => <TaskCard key={task.id} task={task} />)}
               </div>
             </section>
           )}
 
-          {/* Approval tasks submitted to CEO */}
           <section>
-            <h2 className="mb-3 text-lg font-semibold">My Approval Requests</h2>
+            <h2 className="mb-2.5 text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">My Approval Requests</h2>
             {tasks.length === 0 ? (
-              <Card className="shadow-sm">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <div className="mb-4 rounded-full bg-muted p-4">
-                    <PlusCircle className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                  <p className="mb-4 text-muted-foreground">No tasks yet. Submit your first task!</p>
-                  <Button asChild className="hidden bg-foreground text-background hover:bg-foreground/90 md:inline-flex">
-                    <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
+              <div className="task-list">
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <p className="text-sm text-muted-foreground">No requests yet.</p>
+                  <Button asChild size="sm" className="hidden bg-foreground text-background hover:bg-foreground/90 md:inline-flex">
+                    <Link to="/tasks/new"><PlusCircle className="mr-2 h-3.5 w-3.5" />New Task</Link>
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div className="task-list">
                 {tasks.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
                 {tasks.length > 10 && (
-                  <Button variant="outline" asChild className="w-full">
-                    <Link to="/tasks">View all tasks</Link>
-                  </Button>
+                  <Link
+                    to="/tasks"
+                    className="block px-5 py-3 text-center text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+                  >
+                    View all {tasks.length} tasks
+                  </Link>
                 )}
               </div>
             )}

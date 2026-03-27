@@ -16,8 +16,8 @@ import {
 } from '@/lib/supabase/errors'
 
 const SESSION_DURATION_MS = 2 * 60 * 60 * 1000 // 2 hours
-const SESSION_START_KEY = 'mabel_session_start'
-const VIEW_AS_ROLE_KEY = 'mabel_view_as_role'
+const SESSION_START_KEY = '1pax_session_start'
+const VIEW_AS_ROLE_KEY = '1pax_view_as_role'
 
 type UserRole = Profile['role']
 

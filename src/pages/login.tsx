@@ -43,13 +43,13 @@ export function LoginPage() {
         {/* Logo */}
         <div className="flex items-center gap-2.5">
           <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg font-brand text-base"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold"
             style={{ background: 'var(--sidebar-primary)', color: 'var(--sidebar-primary-foreground)' }}
           >
-            M
+            1P
           </div>
           <span className="text-[15px] font-semibold tracking-tight" style={{ color: 'var(--sidebar-primary)' }}>
-            Mabel
+            1PAX
           </span>
         </div>
 
@@ -84,7 +84,7 @@ export function LoginPage() {
 
         {/* Footer */}
         <p className="text-xs" style={{ color: 'var(--sidebar-foreground)', opacity: 0.3 }}>
-          © {new Date().getFullYear()} Mabel · Internal tool
+          © {new Date().getFullYear()} 1PAX · Internal tool
         </p>
       </div>
 
@@ -92,16 +92,16 @@ export function LoginPage() {
       <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-12">
         {/* Mobile logo */}
         <div className="mb-10 flex items-center gap-2.5 lg:hidden">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground font-brand text-base text-background">
-            M
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-xs font-bold text-background">
+            1P
           </div>
-          <span className="text-[15px] font-semibold tracking-tight text-foreground">Mabel</span>
+          <span className="text-[15px] font-semibold tracking-tight text-foreground">1PAX</span>
         </div>
 
         <div className="w-full max-w-sm animate-page-in">
           <div className="mb-8">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              Sign in to Mabel
+              Sign in to 1PAX
             </h2>
             <p className="mt-1.5 text-sm text-muted-foreground">
               Use your company Google account to continue.

@@ -10,12 +10,12 @@ export function Header() {
       {/* Brand mark — mobile only (desktop has it in the sidebar) */}
       <div className="flex items-center gap-2.5 md:hidden">
         <div
-          className="flex h-7 w-7 items-center justify-center rounded-lg font-brand text-sm"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-bold"
           style={{ background: 'var(--sidebar)', color: 'var(--sidebar-primary)' }}
         >
-          M
+          1P
         </div>
-        <span className="text-[15px] font-semibold tracking-tight text-foreground">Mabel</span>
+        <span className="text-[15px] font-semibold tracking-tight text-foreground">1PAX</span>
       </div>
       <div className="ml-auto flex items-center gap-3">
         {profile?.role === 'super_admin' && <RoleSwitcher />}

@@ -20,7 +20,7 @@ export function AccessDeniedPage() {
           <CardDescription>
             {isInactive
               ? 'Your account is currently inactive. Contact an administrator to reactivate your access.'
-              : 'Your email is not authorized to access the Mabel Task Manager. Please contact your administrator to be added.'}
+              : 'Your email is not authorized to access the 1PAX Task Manager. Please contact your administrator to be added.'}
           </CardDescription>
         </CardHeader>
         <CardContent>

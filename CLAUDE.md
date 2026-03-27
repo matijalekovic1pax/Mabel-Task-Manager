@@ -15,7 +15,7 @@ There is no test framework configured in this project.
 
 ## Architecture
 
-**Mabel Task Manager** is a React 19 SPA backed by Supabase (PostgreSQL + Auth).
+**1PAX Task Manager** is a React 19 SPA backed by Supabase (PostgreSQL + Auth).
 
 - **Frontend:** React 19 + Vite + TypeScript, with React Router DOM for routing
 - **Server state:** TanStack React Query (fetching, caching, mutations)
@@ -54,7 +54,7 @@ GENERAL:   anyone → creates (task_type='general') → assigns to multiple peop
 
 `AuthContext` also exposes:
 - `effectiveRole` — the role the UI uses for rendering decisions. For `super_admin` this may be overridden by `viewAsRole`.
-- `viewAsRole` / `setViewAsRole` — lets a `super_admin` preview any other role's UI without changing DB permissions. Persisted to `localStorage` key `mabel_view_as_role`. The amber banner (`RoleSwitcherBanner`) in `AppLayout` appears when active.
+- `viewAsRole` / `setViewAsRole` — lets a `super_admin` preview any other role's UI without changing DB permissions. Persisted to `localStorage` key `1pax_view_as_role`. The amber banner (`RoleSwitcherBanner`) in `AppLayout` appears when active.
 - All role-gated UI must use `effectiveRole`, not `profile.role`. Actual DB writes always use the real role (RLS is enforced server-side).
 
 The `ProtectedRoute` component enforces authorization. Real `super_admin` always bypasses `requireRole` checks regardless of `viewAsRole`.

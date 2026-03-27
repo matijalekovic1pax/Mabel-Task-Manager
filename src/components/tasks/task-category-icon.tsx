@@ -13,21 +13,21 @@ const iconMap = {
 }
 
 const colorMap: Record<TaskCategory, string> = {
-  financial: 'text-emerald-600',
-  project: 'text-blue-600',
-  hr_operations: 'text-purple-600',
+  financial:        'text-emerald-600',
+  project:          'text-orange-600',
+  hr_operations:    'text-rose-600',
   client_relations: 'text-amber-600',
-  pr_marketing: 'text-pink-600',
-  administrative: 'text-slate-500',
+  pr_marketing:     'text-rose-500',
+  administrative:   'text-stone-500',
 }
 
 const bgMap: Record<TaskCategory, string> = {
-  financial: 'bg-emerald-100 text-emerald-600',
-  project: 'bg-blue-100 text-blue-600',
-  hr_operations: 'bg-purple-100 text-purple-600',
+  financial:        'bg-emerald-100 text-emerald-600',
+  project:          'bg-orange-100 text-orange-600',
+  hr_operations:    'bg-rose-100 text-rose-600',
   client_relations: 'bg-amber-100 text-amber-600',
-  pr_marketing: 'bg-pink-100 text-pink-600',
-  administrative: 'bg-slate-100 text-slate-500',
+  pr_marketing:     'bg-rose-50 text-rose-500',
+  administrative:   'bg-stone-100 text-stone-500',
 }
 
 export function TaskCategoryIcon({

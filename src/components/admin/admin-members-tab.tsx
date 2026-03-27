@@ -87,7 +87,7 @@ export function AdminMembersTab({ members, currentUserId, onRefresh, readOnly = 
                       {m.avatar_url ? (
                         <img src={m.avatar_url} alt={m.full_name} className="h-10 w-10 shrink-0 rounded-full" />
                       ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 text-sm font-medium text-white">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-sm font-medium text-white">
                           {m.full_name.charAt(0).toUpperCase()}
                         </div>
                       )}

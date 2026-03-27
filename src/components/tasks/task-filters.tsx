@@ -56,7 +56,7 @@ export function TaskFilters() {
               <SlidersHorizontal className="h-4 w-4" />
               Filters
               {filterCount > 0 && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-600 text-[10px] font-medium text-white">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-600 text-[10px] font-medium text-white">
                   {filterCount}
                 </span>
               )}

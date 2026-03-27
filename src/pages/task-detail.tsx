@@ -321,15 +321,15 @@ export function TaskDetailPage() {
           {task.file_link && (
             <>
               <Separator />
-              <div className="flex items-center gap-2 rounded-md bg-blue-50 p-3 dark:bg-blue-950/20">
-                <ExternalLink className="h-4 w-4 shrink-0 text-blue-600" />
+              <div className="flex items-center gap-2 rounded-md bg-amber-50 p-3 dark:bg-amber-950/20">
+                <ExternalLink className="h-4 w-4 shrink-0 text-amber-700" />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Attached Files</p>
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-100">Attached Files</p>
                   <a
                     href={task.file_link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="break-all text-sm text-blue-600 underline hover:text-blue-800"
+                    className="break-all text-sm text-amber-700 underline hover:text-amber-900"
                   >
                     {task.file_link}
                   </a>
@@ -470,7 +470,7 @@ export function TaskDetailPage() {
               {task.status !== 'in_progress' && (
                 <Button
                   variant="outline"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
                   disabled={updatingStatus}
                   onClick={() => handleGeneralStatusUpdate('in_progress')}
                 >

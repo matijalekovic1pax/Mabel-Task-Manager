@@ -113,7 +113,7 @@ export function AdminDashboardPanel() {
       )}
 
       {readOnly && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+        <div className="rounded-md border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-700">
           Only super admin can manage users. You currently have read-only access to Members and Access.
         </div>
       )}

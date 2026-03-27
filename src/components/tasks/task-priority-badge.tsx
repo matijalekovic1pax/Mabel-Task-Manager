@@ -5,8 +5,8 @@ import type { TaskPriority } from '@/lib/types'
 const priorityStyles: Record<TaskPriority, string> = {
   urgent: 'bg-red-50 text-red-700 border-red-300 font-semibold',
   high:   'bg-orange-50 text-orange-600 border-orange-200',
-  normal: 'bg-transparent text-slate-400 border-transparent',
-  low:    'bg-transparent text-slate-300 border-transparent',
+  normal: 'bg-transparent text-stone-400 border-transparent',
+  low:    'bg-transparent text-stone-300 border-transparent',
 }
 
 const priorityDot: Record<TaskPriority, string | null> = {

@@ -58,21 +58,21 @@ export function RoleSwitcher() {
           onClick={() => setViewAsRole(null)}
           className={!viewAsRole ? 'bg-accent font-medium' : ''}
         >
-          <ShieldAlert className="mr-2 h-4 w-4 text-violet-500" />
+          <ShieldAlert className="mr-2 h-4 w-4 text-amber-600" />
           Super Admin (my role)
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setViewAsRole('ceo')}
           className={viewAsRole === 'ceo' ? 'bg-accent font-medium' : ''}
         >
-          <Eye className="mr-2 h-4 w-4 text-indigo-500" />
+          <Eye className="mr-2 h-4 w-4 text-orange-500" />
           CEO View
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setViewAsRole('team_member')}
           className={viewAsRole === 'team_member' ? 'bg-accent font-medium' : ''}
         >
-          <Eye className="mr-2 h-4 w-4 text-blue-500" />
+          <Eye className="mr-2 h-4 w-4 text-amber-500" />
           Team Member View
         </DropdownMenuItem>
         {viewAsRole && (

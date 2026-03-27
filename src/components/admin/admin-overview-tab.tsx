@@ -18,16 +18,16 @@ export function AdminOverviewTab({ members, allowedEmails }: AdminOverviewTabPro
   const superAdmins = members.filter((m) => m.role === 'super_admin').length
 
   const stats = [
-    { label: 'Total Users', value: members.length, icon: Users, color: 'border-violet-500', iconBg: 'bg-violet-100 text-violet-600' },
-    { label: 'Active', value: active, icon: UserCheck, color: 'border-emerald-500', iconBg: 'bg-emerald-100 text-emerald-600' },
-    { label: 'Inactive', value: inactive, icon: UserX, color: 'border-slate-400', iconBg: 'bg-slate-100 text-slate-600' },
-    { label: 'Pending Invites', value: pendingInvites, icon: Mail, color: 'border-amber-500', iconBg: 'bg-amber-100 text-amber-600' },
+    { label: 'Total Users',     value: members.length,  icon: Users,      color: 'border-amber-500',   iconBg: 'bg-amber-100 text-amber-600' },
+    { label: 'Active',          value: active,           icon: UserCheck,  color: 'border-emerald-500', iconBg: 'bg-emerald-100 text-emerald-600' },
+    { label: 'Inactive',        value: inactive,         icon: UserX,      color: 'border-stone-400',   iconBg: 'bg-stone-100 text-stone-600' },
+    { label: 'Pending Invites', value: pendingInvites,   icon: Mail,       color: 'border-orange-500',  iconBg: 'bg-orange-100 text-orange-600' },
   ]
 
   const roles = [
-    { label: 'CEOs', value: ceos, icon: UserCog, color: 'text-blue-600' },
-    { label: 'Team Members', value: teamMembers, icon: Users, color: 'text-emerald-600' },
-    { label: 'Super Admins', value: superAdmins, icon: Shield, color: 'text-rose-600' },
+    { label: 'CEOs',         value: ceos,        icon: UserCog, color: 'text-orange-600' },
+    { label: 'Team Members', value: teamMembers, icon: Users,   color: 'text-emerald-600' },
+    { label: 'Super Admins', value: superAdmins, icon: Shield,  color: 'text-rose-600' },
   ]
 
   return (

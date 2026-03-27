@@ -58,7 +58,7 @@ export function AuthCallbackPage() {
         </div>
         <button
           onClick={() => navigate('/login', { replace: true })}
-          className="text-sm text-violet-600 underline hover:text-violet-800"
+          className="text-sm text-amber-700 underline hover:text-amber-900"
         >
           Back to login
         </button>
@@ -68,7 +68,7 @@ export function AuthCallbackPage() {
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-3">
-      <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+      <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
       <p className="text-sm text-muted-foreground">Signing you in...</p>
     </div>
   )

@@ -145,8 +145,8 @@ export function ActivityPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-violet-500" />
-          <h1 className="text-2xl font-bold tracking-tight">Activity</h1>
+          <Activity className="h-5 w-5 text-muted-foreground/60" />
+          <h1 className="font-display text-2xl font-light tracking-tight">Activity</h1>
         </div>
         <Button variant="outline" size="sm" onClick={() => void refresh({ background: true })}>
           Refresh

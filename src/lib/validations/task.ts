@@ -63,6 +63,29 @@ export const delegationSchema = z.object({
 export type DelegationInput = z.infer<typeof delegationSchema>
 
 // ---------------------------------------------------------------------------
+// General task schema (peer-to-peer task system)
+// ---------------------------------------------------------------------------
+
+export const generalTaskSchema = z.object({
+  title: z
+    .string()
+    .min(3, 'Title must be at least 3 characters')
+    .max(200, 'Title must be at most 200 characters'),
+  description: z
+    .string()
+    .min(10, 'Description must be at least 10 characters')
+    .max(5000, 'Description must be at most 5,000 characters'),
+  priority: z.enum(['urgent', 'high', 'normal', 'low']),
+  deadline: z.string().nullable().optional(),
+  assignee_ids: z
+    .array(z.string().uuid())
+    .max(20, 'You can assign at most 20 people'),
+  visibility: z.enum(['private', 'company']).default('company'),
+})
+
+export type GeneralTaskInput = z.infer<typeof generalTaskSchema>
+
+// ---------------------------------------------------------------------------
 // Comment schema
 // ---------------------------------------------------------------------------
 

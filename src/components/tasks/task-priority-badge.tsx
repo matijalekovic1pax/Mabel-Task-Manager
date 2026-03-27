@@ -3,10 +3,10 @@ import { PRIORITY_CONFIG } from '@/lib/utils/constants'
 import type { TaskPriority } from '@/lib/types'
 
 const priorityColors: Record<TaskPriority, string> = {
-  urgent: 'bg-red-100 text-red-700 border-red-300',
-  high: 'bg-orange-100 text-orange-700 border-orange-200',
-  normal: 'bg-blue-100 text-blue-700 border-blue-200',
-  low: 'bg-slate-100 text-slate-600 border-slate-200',
+  urgent: 'bg-foreground text-background border-foreground',
+  high: 'bg-foreground/10 text-foreground/80 border-foreground/20',
+  normal: 'bg-transparent text-muted-foreground border-border',
+  low: 'bg-transparent text-muted-foreground/60 border-border',
 }
 
 export function TaskPriorityBadge({ priority }: { priority: TaskPriority }) {

@@ -18,14 +18,14 @@ import {
 import { Badge } from '@/components/ui/badge'
 
 const ACTION_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  approve: { label: 'Approved', icon: CheckCircle2, color: 'text-emerald-600' },
-  reject: { label: 'Rejected', icon: XCircle, color: 'text-red-600' },
-  request_info: { label: 'Requested more info', icon: AlertCircle, color: 'text-amber-600' },
-  provide_info: { label: 'Provided info', icon: Info, color: 'text-blue-600' },
-  delegate: { label: 'Delegated', icon: UserPlus, color: 'text-purple-600' },
-  defer: { label: 'Deferred', icon: Clock, color: 'text-slate-500' },
-  resolve: { label: 'Resolved', icon: CheckCircle2, color: 'text-teal-600' },
-  mark_ready: { label: 'Marked ready for review', icon: ArrowUpCircle, color: 'text-indigo-600' },
+  approve: { label: 'Approved', icon: CheckCircle2, color: 'text-foreground' },
+  reject: { label: 'Rejected', icon: XCircle, color: 'text-destructive' },
+  request_info: { label: 'Requested more info', icon: AlertCircle, color: 'text-muted-foreground' },
+  provide_info: { label: 'Provided info', icon: Info, color: 'text-muted-foreground' },
+  delegate: { label: 'Delegated', icon: UserPlus, color: 'text-foreground/70' },
+  defer: { label: 'Deferred', icon: Clock, color: 'text-muted-foreground' },
+  resolve: { label: 'Resolved', icon: CheckCircle2, color: 'text-foreground' },
+  mark_ready: { label: 'Marked ready for review', icon: ArrowUpCircle, color: 'text-foreground/70' },
 }
 
 function StatusBadge({ status }: { status: string }) {

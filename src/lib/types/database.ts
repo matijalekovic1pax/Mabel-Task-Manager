@@ -73,6 +73,8 @@ export type Database = {
           is_archived: boolean
           reference_number: string
           file_link: string | null
+          task_type: 'approval' | 'general'
+          visibility: 'private' | 'company'
         }
         Insert: {
           id?: string
@@ -93,6 +95,8 @@ export type Database = {
           is_archived?: boolean
           reference_number?: string
           file_link?: string | null
+          task_type?: 'approval' | 'general'
+          visibility?: 'private' | 'company'
         }
         Update: {
           id?: string
@@ -113,6 +117,8 @@ export type Database = {
           is_archived?: boolean
           reference_number?: string
           file_link?: string | null
+          task_type?: 'approval' | 'general'
+          visibility?: 'private' | 'company'
         }
         Relationships: [
           {
@@ -321,6 +327,52 @@ export type Database = {
           },
         ]
       }
+      task_assignees: {
+        Row: {
+          id: string
+          task_id: string
+          assignee_id: string
+          assigned_by: string
+          assigned_at: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          assignee_id: string
+          assigned_by: string
+          assigned_at?: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          assignee_id?: string
+          assigned_by?: string
+          assigned_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'task_assignees_task_id_fkey'
+            columns: ['task_id']
+            isOneToOne: false
+            referencedRelation: 'tasks'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'task_assignees_assignee_id_fkey'
+            columns: ['assignee_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'task_assignees_assigned_by_fkey'
+            columns: ['assigned_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       allowed_emails: {
         Row: {
           id: string
@@ -367,6 +419,14 @@ export type Database = {
         }
         Returns: Database['public']['Tables']['tasks']['Row']
       }
+      update_general_task_status: {
+        Args: {
+          p_task_id: string
+          p_status: string
+          p_note?: string | null
+        }
+        Returns: Database['public']['Tables']['tasks']['Row']
+      }
     }
     Enums: {
       task_category:
@@ -386,6 +446,10 @@ export type Database = {
         | 'deferred'
         | 'delegated'
         | 'resolved'
+        | 'todo'
+        | 'in_progress'
+        | 'done'
+        | 'cancelled'
       notification_type:
         | 'task_submitted'
         | 'task_resolved'
@@ -396,6 +460,8 @@ export type Database = {
         | 'comment_added'
         | 'deadline_approaching'
         | 'task_overdue'
+        | 'task_assigned'
+        | 'task_completed'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -416,6 +482,7 @@ export type TaskAttachment = Tables['task_attachments']['Row']
 export type TaskEvent = Tables['task_events']['Row']
 export type Notification = Tables['notifications']['Row']
 export type AllowedEmail = Tables['allowed_emails']['Row']
+export type TaskAssignee = Tables['task_assignees']['Row']
 
 export type TaskCategory = Database['public']['Enums']['task_category']
 export type TaskPriority = Database['public']['Enums']['task_priority']
@@ -429,6 +496,7 @@ export type TaskAttachmentInsert = Tables['task_attachments']['Insert']
 export type TaskEventInsert = Tables['task_events']['Insert']
 export type NotificationInsert = Tables['notifications']['Insert']
 export type AllowedEmailInsert = Tables['allowed_emails']['Insert']
+export type TaskAssigneeInsert = Tables['task_assignees']['Insert']
 
 export type TaskAction =
   | 'request_info'
@@ -453,4 +521,9 @@ export type TaskWithDetails = Task & {
   comments: (TaskComment & { author: Profile })[]
   attachments: TaskAttachment[]
   events: (TaskEvent & { actor: Profile })[]
+  /** Populated for general tasks: the full list of assignees */
+  assignees?: (TaskAssignee & { assignee: Profile })[]
 }
+
+/** Status values used by the general task workflow */
+export type GeneralTaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled'

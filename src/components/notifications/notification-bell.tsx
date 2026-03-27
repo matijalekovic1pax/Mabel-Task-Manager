@@ -149,7 +149,7 @@ export function NotificationBell() {
         <Button variant="ghost" size="icon" className="relative">
           <Activity className="h-5 w-5" />
           {recentCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-violet-600 text-[10px] font-medium text-white">
+            <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-[10px] font-medium text-background">
               {recentCount > 9 ? '9+' : recentCount}
             </span>
           )}

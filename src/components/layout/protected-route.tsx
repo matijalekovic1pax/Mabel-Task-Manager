@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { Loader2 } from 'lucide-react'
 
 export function ProtectedRoute({ children, requireRole }: { children: React.ReactNode; requireRole?: 'ceo' | 'team_member' }) {
-  const { user, profile, loading, authState } = useAuth()
+  const { user, profile, effectiveRole, loading, authState } = useAuth()
 
   if (loading) {
     return (
@@ -38,12 +38,13 @@ export function ProtectedRoute({ children, requireRole }: { children: React.Reac
     return <Navigate to="/access-denied?reason=inactive" replace />
   }
 
-  // super_admin bypasses all role restrictions
+  // super_admin always bypasses role restrictions (real role, not effective)
   if (profile.role === 'super_admin') {
     return <>{children}</>
   }
 
-  if (requireRole && profile.role !== requireRole) {
+  // For all other users, check the required role using effectiveRole
+  if (requireRole && effectiveRole !== requireRole) {
     return <Navigate to="/" replace />
   }
 

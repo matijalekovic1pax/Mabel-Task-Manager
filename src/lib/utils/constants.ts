@@ -94,6 +94,26 @@ export interface StatusConfig {
 }
 
 export const STATUS_CONFIG: Record<TaskStatus, StatusConfig> = {
+  todo: {
+    label: 'To Do',
+    color: 'text-slate-600 bg-slate-50 border-slate-200',
+    isFinal: false,
+  },
+  in_progress: {
+    label: 'In Progress',
+    color: 'text-blue-700 bg-blue-50 border-blue-200',
+    isFinal: false,
+  },
+  done: {
+    label: 'Done',
+    color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    isFinal: true,
+  },
+  cancelled: {
+    label: 'Cancelled',
+    color: 'text-red-700 bg-red-50 border-red-200',
+    isFinal: true,
+  },
   pending: {
     label: 'Pending',
     color: 'text-yellow-700 bg-yellow-50 border-yellow-200',

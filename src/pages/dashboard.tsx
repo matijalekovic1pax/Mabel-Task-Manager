@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { getCeoQueue, getMyAssignedTasks, getMySubmittedTasks } from '@/lib/services/tasks'
+import { getCeoQueue, getMyAssignedTasks, getMySubmittedTasks, getMyAssignedGeneralTasks } from '@/lib/services/tasks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,12 +23,12 @@ import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
 import { createRequestGuard, withTimeout } from '@/lib/utils/async'
 
 const CATEGORY_COLORS: Record<string, string> = {
-  financial: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  project: 'bg-blue-50 border-blue-200 text-blue-700',
-  hr_operations: 'bg-purple-50 border-purple-200 text-purple-700',
-  client_relations: 'bg-amber-50 border-amber-200 text-amber-700',
-  pr_marketing: 'bg-pink-50 border-pink-200 text-pink-700',
-  administrative: 'bg-slate-50 border-slate-200 text-slate-600',
+  financial: 'bg-muted border-border text-foreground/75',
+  project: 'bg-muted border-border text-foreground/75',
+  hr_operations: 'bg-muted border-border text-foreground/75',
+  client_relations: 'bg-muted border-border text-foreground/75',
+  pr_marketing: 'bg-muted border-border text-foreground/75',
+  administrative: 'bg-muted border-border text-foreground/75',
 }
 
 const FINAL_STATUSES = ['approved', 'rejected', 'resolved']
@@ -51,10 +51,11 @@ function mergeTasks(...lists: TaskWithSubmitter[][]): TaskWithSubmitter[] {
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const { profile, signOut } = useAuth()
-  const isCeo = hasAdminAccess(profile?.role)
+  const { profile, effectiveRole, signOut } = useAuth()
+  const isCeo = hasAdminAccess(effectiveRole)
 
   const [tasks, setTasks] = useState<TaskWithSubmitter[]>([])
+  const [generalTasks, setGeneralTasks] = useState<TaskWithSubmitter[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -90,10 +91,13 @@ export function DashboardPage() {
             getMyAssignedTasks(profile.id),
           ]).then(([submitted, assigned]) => mergeTasks(submitted, assigned))
 
-      const data = await withTimeout(fetchPromise)
+      const [data, myGeneral] = await withTimeout(
+        Promise.all([fetchPromise, getMyAssignedGeneralTasks(profile.id)]),
+      )
       if (!guardRef.current.isLatest(requestId)) return
 
       setTasks(data)
+      setGeneralTasks(myGeneral)
       hasLoadedRef.current = true
     } catch (err) {
       if (!guardRef.current.isLatest(requestId)) return
@@ -247,17 +251,15 @@ export function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="font-display text-2xl font-light tracking-tight text-foreground">
             {getGreeting()},{' '}
-            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-              {profile?.full_name?.split(' ')[0]}
-            </span>
+            <em>{profile?.full_name?.split(' ')[0]}</em>
           </h1>
-          <p className="text-muted-foreground">
-            {isCeo ? 'CEO Decision Center' : 'Submitted and delegated tasks in one view.'}
+          <p className="text-sm text-muted-foreground">
+            {isCeo ? 'CEO Decision Center' : 'Your tasks and requests in one view.'}
           </p>
         </div>
-        <Button asChild className="hidden bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200 md:inline-flex">
+        <Button asChild className="hidden md:inline-flex bg-foreground text-background hover:bg-foreground/90">
           <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
         </Button>
       </div>
@@ -279,41 +281,33 @@ export function DashboardPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-l-4 border-l-amber-400 shadow-sm">
+        <Card className="shadow-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Needs Decision' : 'Open Tasks'}</CardTitle>
-            <div className="rounded-full bg-amber-50 p-2">
-              <Clock className="h-4 w-4 text-amber-500" />
-            </div>
+            <Clock className="h-4 w-4 text-muted-foreground/50" />
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-amber-600">{isCeo ? needsDecision.length : myOpen.length}</p></CardContent>
+          <CardContent><p className="font-display text-3xl font-light text-foreground">{isCeo ? needsDecision.length : myOpen.length}</p></CardContent>
         </Card>
-        <Card className="border-l-4 border-l-red-400 shadow-sm">
+        <Card className="shadow-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Waiting on Others' : 'Assigned to Me'}</CardTitle>
-            <div className="rounded-full bg-red-50 p-2">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-            </div>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground/50" />
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-red-600">{isCeo ? waitingOnOthers.length : myAssigned.length}</p></CardContent>
+          <CardContent><p className="font-display text-3xl font-light text-foreground">{isCeo ? waitingOnOthers.length : myAssigned.length}</p></CardContent>
         </Card>
-        <Card className="border-l-4 border-l-blue-400 shadow-sm">
+        <Card className="shadow-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">{isCeo ? 'Due Today' : 'Submitted by Me'}</CardTitle>
-            <div className="rounded-full bg-blue-50 p-2">
-              <ListTodo className="h-4 w-4 text-blue-500" />
-            </div>
+            <ListTodo className="h-4 w-4 text-muted-foreground/50" />
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-blue-600">{isCeo ? dueToday.length : mySubmitted.length}</p></CardContent>
+          <CardContent><p className="font-display text-3xl font-light text-foreground">{isCeo ? dueToday.length : mySubmitted.length}</p></CardContent>
         </Card>
-        <Card className="border-l-4 border-l-emerald-400 shadow-sm">
+        <Card className="shadow-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
-            <div className="rounded-full bg-emerald-50 p-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            </div>
+            <CheckCircle2 className="h-4 w-4 text-muted-foreground/50" />
           </CardHeader>
-          <CardContent><p className="text-3xl font-bold text-emerald-600">{completed.length}</p></CardContent>
+          <CardContent><p className="font-display text-3xl font-light text-foreground">{completed.length}</p></CardContent>
         </Card>
       </div>
 
@@ -375,30 +369,48 @@ export function DashboardPage() {
           </section>
         </div>
       ) : (
-        <div>
-          <h2 className="mb-3 text-lg font-semibold">My Recent Work</h2>
-          {tasks.length === 0 ? (
-            <Card className="shadow-sm">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <div className="mb-4 rounded-full bg-violet-50 p-4">
-                  <PlusCircle className="h-8 w-8 text-violet-400" />
-                </div>
-                <p className="mb-4 text-muted-foreground">No tasks yet. Submit your first task!</p>
-                <Button asChild className="hidden bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 shadow-md shadow-violet-200 md:inline-flex">
-                  <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
+        <div className="space-y-6">
+          {/* General tasks assigned to me */}
+          {generalTasks.length > 0 && (
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Tasks Assigned to Me</h2>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/my-tasks">View all</Link>
                 </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {tasks.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
-              {tasks.length > 10 && (
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/tasks">View all tasks</Link>
-                </Button>
-              )}
-            </div>
+              </div>
+              <div className="space-y-3">
+                {generalTasks.slice(0, 5).map((task) => <TaskCard key={task.id} task={task} />)}
+              </div>
+            </section>
           )}
+
+          {/* Approval tasks submitted to CEO */}
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">My Approval Requests</h2>
+            {tasks.length === 0 ? (
+              <Card className="shadow-sm">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <div className="mb-4 rounded-full bg-muted p-4">
+                    <PlusCircle className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
+                  <p className="mb-4 text-muted-foreground">No tasks yet. Submit your first task!</p>
+                  <Button asChild className="hidden bg-foreground text-background hover:bg-foreground/90 md:inline-flex">
+                    <Link to="/tasks/new"><PlusCircle className="mr-2 h-4 w-4" />New Task</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {tasks.slice(0, 10).map((task) => <TaskCard key={task.id} task={task} />)}
+                {tasks.length > 10 && (
+                  <Button variant="outline" asChild className="w-full">
+                    <Link to="/tasks">View all tasks</Link>
+                  </Button>
+                )}
+              </div>
+            )}
+          </section>
         </div>
       )}
     </div>

@@ -8,8 +8,9 @@ import type {
   TaskStatus,
   TaskCategory,
   TaskPriority,
+  GeneralTaskStatus,
 } from '@/lib/types'
-import type { TaskInput, ResolutionInput, DelegationInput } from '@/lib/validations/task'
+import type { TaskInput, ResolutionInput, DelegationInput, GeneralTaskInput } from '@/lib/validations/task'
 
 // ---------------------------------------------------------------------------
 // Create a new task
@@ -164,7 +165,8 @@ export async function getTask(taskId: string): Promise<TaskWithDetails> {
       resolver:profiles!tasks_resolved_by_fkey(*),
       comments:task_comments(*, author:profiles!task_comments_author_id_fkey(*)),
       attachments:task_attachments(*),
-      events:task_events(*, actor:profiles!task_events_actor_id_fkey(*))
+      events:task_events(*, actor:profiles!task_events_actor_id_fkey(*)),
+      assignees:task_assignees(*, assignee:profiles!task_assignees_assignee_id_fkey(*))
     `,
     )
     .eq('id', taskId)
@@ -238,6 +240,179 @@ export async function deleteTask(taskId: string) {
     .delete()
     .eq('id', taskId)
 
+  if (error) throw error
+}
+
+// ---------------------------------------------------------------------------
+// General task system
+// ---------------------------------------------------------------------------
+
+/** Create a general task and add its assignees in one operation. */
+export async function createGeneralTask(
+  data: GeneralTaskInput,
+  userId: string,
+): Promise<Task> {
+  const { data: task, error } = await supabase
+    .from('tasks')
+    .insert({
+      title: data.title,
+      description: data.description,
+      priority: data.priority,
+      deadline: data.deadline ?? null,
+      submitted_by: userId,
+      status: 'todo',
+      task_type: 'general',
+      visibility: data.visibility ?? 'company',
+      // general tasks use task_assignees; category is required by schema — use 'administrative' as default
+      category: 'administrative',
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+
+  // Insert all assignees (skip self-assignment if caller is in the list)
+  if (data.assignee_ids && data.assignee_ids.length > 0) {
+    const rows = data.assignee_ids.map((assigneeId) => ({
+      task_id: task.id,
+      assignee_id: assigneeId,
+      assigned_by: userId,
+    }))
+    const { error: assignError } = await supabase.from('task_assignees').insert(rows)
+    if (assignError) throw assignError
+  }
+
+  return task
+}
+
+/** Fetch general tasks visible to this user (company-wide + their own private). */
+export async function getMyGeneralTasks(userId: string): Promise<TaskWithDetails[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(
+      `
+      *,
+      submitter:profiles!tasks_submitted_by_fkey(*),
+      assignee:profiles!tasks_assigned_to_fkey(*),
+      resolver:profiles!tasks_resolved_by_fkey(*),
+      comments:task_comments(*, author:profiles!task_comments_author_id_fkey(*)),
+      attachments:task_attachments(*),
+      events:task_events(*, actor:profiles!task_events_actor_id_fkey(*)),
+      assignees:task_assignees(*, assignee:profiles!task_assignees_assignee_id_fkey(*))
+    `,
+    )
+    .eq('task_type', 'general')
+    .eq('is_archived', false)
+    .or(`submitted_by.eq.${userId},task_assignees.assignee_id.eq.${userId}`)
+    .order('submitted_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as unknown as TaskWithDetails[]
+}
+
+/** Fetch general tasks assigned to this user specifically. */
+export async function getMyAssignedGeneralTasks(userId: string): Promise<TaskWithSubmitter[]> {
+  // Get task IDs where this user is an assignee
+  const { data: assigneeRows, error: assignError } = await supabase
+    .from('task_assignees')
+    .select('task_id')
+    .eq('assignee_id', userId)
+
+  if (assignError) throw assignError
+  if (!assigneeRows || assigneeRows.length === 0) return []
+
+  const taskIds = assigneeRows.map((r) => r.task_id)
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*, submitter:profiles!tasks_submitted_by_fkey(*)')
+    .eq('task_type', 'general')
+    .eq('is_archived', false)
+    .in('id', taskIds)
+    .order('submitted_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as unknown as TaskWithSubmitter[]
+}
+
+/** Fetch all company-visible general tasks. */
+export async function getCompanyTasks(filters?: TaskFilters): Promise<TaskWithSubmitter[]> {
+  let query = supabase
+    .from('tasks')
+    .select('*, submitter:profiles!tasks_submitted_by_fkey(*)')
+    .eq('task_type', 'general')
+    .eq('visibility', 'company')
+    .eq('is_archived', false)
+
+  if (filters?.status) {
+    const statuses = Array.isArray(filters.status) ? filters.status : [filters.status]
+    query = query.in('status', statuses as TaskStatus[])
+  }
+
+  if (filters?.priority) {
+    const priorities = Array.isArray(filters.priority) ? filters.priority : [filters.priority]
+    query = query.in('priority', priorities as TaskPriority[])
+  }
+
+  if (filters?.search) {
+    query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
+  }
+
+  if (filters?.submittedBy) {
+    query = query.eq('submitted_by', filters.submittedBy)
+  }
+
+  const sortBy = filters?.sortBy ?? 'submitted_at'
+  const sortOrder = filters?.sortOrder ?? 'desc'
+  query = query.order(sortBy, { ascending: sortOrder === 'asc' })
+
+  if (filters?.limit) {
+    const from = filters.offset ?? 0
+    query = query.range(from, from + filters.limit - 1)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return (data ?? []) as unknown as TaskWithSubmitter[]
+}
+
+/** Update the status of a general task via the server-enforced RPC. */
+export async function updateGeneralTaskStatus(
+  taskId: string,
+  status: GeneralTaskStatus,
+  note?: string | null,
+): Promise<Task> {
+  const { data, error } = await supabase.rpc('update_general_task_status', {
+    p_task_id: taskId,
+    p_status: status,
+    p_note: note ?? null,
+  })
+
+  if (error) throw error
+  return data as Task
+}
+
+/** Add a new assignee to a general task. */
+export async function addTaskAssignee(
+  taskId: string,
+  assigneeId: string,
+  assignedBy: string,
+): Promise<void> {
+  const { error } = await supabase.from('task_assignees').insert({
+    task_id: taskId,
+    assignee_id: assigneeId,
+    assigned_by: assignedBy,
+  })
+  if (error) throw error
+}
+
+/** Remove an assignee from a general task. */
+export async function removeTaskAssignee(taskId: string, assigneeId: string): Promise<void> {
+  const { error } = await supabase
+    .from('task_assignees')
+    .delete()
+    .eq('task_id', taskId)
+    .eq('assignee_id', assigneeId)
   if (error) throw error
 }
 

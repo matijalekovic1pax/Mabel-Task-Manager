@@ -17,6 +17,9 @@ import {
 
 const SESSION_DURATION_MS = 2 * 60 * 60 * 1000 // 2 hours
 const SESSION_START_KEY = 'mabel_session_start'
+const VIEW_AS_ROLE_KEY = 'mabel_view_as_role'
+
+type UserRole = Profile['role']
 
 // ---------------------------------------------------------------------------
 // Context shape
@@ -34,6 +37,11 @@ interface AuthContextValue {
   profile: Profile | null
   authState: AuthState
   loading: boolean
+  /** The role the UI should render as. For super_admin this may be overridden by viewAsRole. */
+  effectiveRole: UserRole | null
+  /** The currently active view-as override (super_admin only). null = real role. */
+  viewAsRole: UserRole | null
+  setViewAsRole: (role: UserRole | null) => void
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -49,6 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [authState, setAuthState] = useState<AuthState>('loading')
+  const [viewAsRole, setViewAsRoleState] = useState<UserRole | null>(() => {
+    const stored = localStorage.getItem(VIEW_AS_ROLE_KEY)
+    return (stored as UserRole) ?? null
+  })
   const initialized = useRef(false)
   const sessionExpiredRef = useRef(false)
   const sessionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -264,10 +276,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Set the view-as role override (super_admin only). Persisted to localStorage.
+  const setViewAsRole = useCallback((role: UserRole | null) => {
+    setViewAsRoleState(role)
+    if (role) {
+      localStorage.setItem(VIEW_AS_ROLE_KEY, role)
+    } else {
+      localStorage.removeItem(VIEW_AS_ROLE_KEY)
+    }
+  }, [])
+
+  // effectiveRole: the role the UI should use for rendering decisions.
+  // super_admin can preview another role via viewAsRole; everyone else always sees their real role.
+  const effectiveRole: UserRole | null = profile
+    ? (profile.role === 'super_admin' && viewAsRole ? viewAsRole : profile.role)
+    : null
+
   // Sign out
   const signOut = useCallback(async () => {
     sessionExpiredRef.current = false
     localStorage.removeItem(SESSION_START_KEY)
+    localStorage.removeItem(VIEW_AS_ROLE_KEY)
+    setViewAsRoleState(null)
 
     if (sessionTimeoutRef.current) {
       clearTimeout(sessionTimeoutRef.current)
@@ -291,7 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, authState, loading, signInWithGoogle, signOut, refreshProfile }}
+      value={{ user, profile, authState, loading, effectiveRole, viewAsRole, setViewAsRole, signInWithGoogle, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

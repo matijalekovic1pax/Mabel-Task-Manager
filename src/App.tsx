@@ -16,6 +16,7 @@ const TaskDetailPage = lazy(() => import('@/pages/task-detail').then((m) => ({ d
 const ActivityPage = lazy(() => import('@/pages/activity').then((m) => ({ default: m.ActivityPage })))
 const SettingsPage = lazy(() => import('@/pages/settings').then((m) => ({ default: m.SettingsPage })))
 const AdminPage = lazy(() => import('@/pages/admin').then((m) => ({ default: m.AdminPage })))
+const MyTasksPage = lazy(() => import('@/pages/my-tasks').then((m) => ({ default: m.MyTasksPage })))
 
 function RouteLoader() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="tasks" element={<TasksPage />} />
               <Route path="tasks/new" element={<NewTaskPage />} />
               <Route path="tasks/:id" element={<TaskDetailPage />} />
+              <Route path="my-tasks" element={<MyTasksPage />} />
               <Route path="activity" element={<ActivityPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route

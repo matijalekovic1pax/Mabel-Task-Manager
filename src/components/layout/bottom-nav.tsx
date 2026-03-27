@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ListTodo, PlusCircle, Activity, Settings } from 'lucide-react'
+import { LayoutDashboard, ListTodo, PlusCircle, CheckSquare, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -12,9 +12,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/tasks', label: 'Tasks', icon: ListTodo },
+  { to: '/my-tasks', label: 'My Tasks', icon: CheckSquare },
   { to: '/tasks/new', label: 'New', icon: PlusCircle, isCenter: true },
-  { to: '/activity', label: 'Activity', icon: Activity },
+  { to: '/tasks', label: 'Tasks', icon: ListTodo },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -39,13 +39,11 @@ export function BottomNav() {
                 <div className="flex flex-1 flex-col items-center justify-center -mt-5">
                   <div
                     className={cn(
-                      'flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all',
-                      isActive
-                        ? 'bg-gradient-to-br from-violet-600 to-indigo-700'
-                        : 'bg-gradient-to-br from-violet-500 to-indigo-600'
+                      'flex h-14 w-14 items-center justify-center rounded-full shadow-md transition-all',
+                      isActive ? 'bg-foreground' : 'bg-foreground/90'
                     )}
                   >
-                    <item.icon className="h-6 w-6 text-white" />
+                    <item.icon className="h-6 w-6 text-background" />
                   </div>
                   <span className="mt-1 text-[10px] font-medium text-muted-foreground">
                     {item.label}
@@ -56,20 +54,20 @@ export function BottomNav() {
                   <div
                     className={cn(
                       'flex h-8 w-12 items-center justify-center rounded-full transition-colors',
-                      isActive ? 'bg-violet-100' : ''
+                      isActive ? 'bg-foreground/8' : ''
                     )}
                   >
                     <item.icon
                       className={cn(
                         'h-5 w-5 transition-colors',
-                        isActive ? 'text-violet-600' : 'text-muted-foreground'
+                        isActive ? 'text-foreground' : 'text-muted-foreground'
                       )}
                     />
                   </div>
                   <span
                     className={cn(
                       'text-[10px] font-medium transition-colors',
-                      isActive ? 'text-violet-600' : 'text-muted-foreground'
+                      isActive ? 'text-foreground' : 'text-muted-foreground'
                     )}
                   >
                     {item.label}

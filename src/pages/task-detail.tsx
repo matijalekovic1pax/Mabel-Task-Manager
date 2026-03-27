@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { getTask, transitionTask, deleteTask } from '@/lib/services/tasks'
+import { getTask, transitionTask, deleteTask, updateGeneralTaskStatus, addTaskAssignee, removeTaskAssignee } from '@/lib/services/tasks'
 import { getActiveTeamMembers } from '@/lib/services/team'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,10 +24,11 @@ import { TaskDelegationForm } from '@/components/tasks/task-delegation-form'
 import { TaskComments } from '@/components/tasks/task-comments'
 import { formatDateTime, formatDeadline, formatRelativeTime, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
-import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History, Trash2, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History, Trash2, ChevronDown, Users, PlayCircle, CheckCircle2, XCircle, UserPlus } from 'lucide-react'
 import { hasAdminAccess, isCeo, isSuperAdmin } from '@/lib/utils/roles'
 import { toast } from 'sonner'
-import type { TaskWithDetails, Profile } from '@/lib/types'
+import type { TaskWithDetails, Profile, GeneralTaskStatus } from '@/lib/types'
+import { TaskAssigneesPicker } from '@/components/tasks/task-assignees-picker'
 
 const ACTION_LABELS: Record<string, string> = {
   request_info: 'Requested More Info',
@@ -56,7 +57,7 @@ function getNextActionOwner(task: TaskWithDetails): string {
 
 export function TaskDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { profile } = useAuth()
+  const { profile, effectiveRole } = useAuth()
   const navigate = useNavigate()
   const [task, setTask] = useState<TaskWithDetails | null>(null)
   const [teamMembers, setTeamMembers] = useState<Profile[]>([])
@@ -64,12 +65,16 @@ export function TaskDetailPage() {
   const [markingReady, setMarkingReady] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [showAssigneePicker, setShowAssigneePicker] = useState(false)
+  const [pendingAssignees, setPendingAssignees] = useState<string[]>([])
+  const [addingAssignee, setAddingAssignee] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const actionRef = useRef<HTMLDivElement>(null)
 
-  const isAdmin = hasAdminAccess(profile?.role)
-  const canWrite = isCeo(profile?.role)
-  const readOnly = isSuperAdmin(profile?.role)
+  const isAdmin = hasAdminAccess(effectiveRole)
+  const canWrite = isCeo(effectiveRole)
+  const readOnly = isSuperAdmin(effectiveRole)
 
   const refresh = useCallback(async () => {
     if (!id) {
@@ -92,12 +97,13 @@ export function TaskDetailPage() {
   }, [refresh])
 
   useEffect(() => {
-    if (!canWrite) return
-
+    // Load team members for delegation (CEO) and general task assignee management
+    if (!task) return
+    if (!canWrite && task.task_type !== 'general') return
     getActiveTeamMembers()
       .then(setTeamMembers)
       .catch(() => {})
-  }, [canWrite])
+  }, [canWrite, task])
 
   async function handleMarkReady() {
     if (!task) return
@@ -135,6 +141,49 @@ export function TaskDetailPage() {
     }
   }
 
+  async function handleGeneralStatusUpdate(status: GeneralTaskStatus) {
+    if (!task) return
+    setUpdatingStatus(true)
+    try {
+      await updateGeneralTaskStatus(task.id, status)
+      toast.success(`Task moved to ${status.replace('_', ' ')}`)
+      await refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update status')
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
+
+  async function handleAddAssignees() {
+    if (!task || !profile || pendingAssignees.length === 0) return
+    setAddingAssignee(true)
+    try {
+      for (const id of pendingAssignees) {
+        await addTaskAssignee(task.id, id, profile.id)
+      }
+      toast.success('Assignees added')
+      setPendingAssignees([])
+      setShowAssigneePicker(false)
+      await refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add assignees')
+    } finally {
+      setAddingAssignee(false)
+    }
+  }
+
+  async function handleRemoveAssignee(assigneeId: string) {
+    if (!task) return
+    try {
+      await removeTaskAssignee(task.id, assigneeId)
+      toast.success('Assignee removed')
+      await refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove assignee')
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-4xl space-y-6">
@@ -158,11 +207,24 @@ export function TaskDetailPage() {
   }
 
   const isFinal = STATUS_CONFIG[task.status]?.isFinal ?? false
-  const canRunAdminActions = canWrite && !isFinal
+  const isGeneralTask = task.task_type === 'general'
+  const isApprovalTask = task.task_type === 'approval'
+
+  // Approval task permissions
+  const canRunAdminActions = isApprovalTask && canWrite && !isFinal
   const canDelegate = canRunAdminActions && task.status !== 'delegated'
-  const canMarkReady = !isAdmin && task.status === 'delegated' && task.assigned_to === profile?.id
+  const canMarkReady = isApprovalTask && !isAdmin && task.status === 'delegated' && task.assigned_to === profile?.id
+
+  // General task permissions
+  const isGeneralCreator = isGeneralTask && profile?.id === task.submitted_by
+  const isGeneralAssignee = isGeneralTask && (task.assignees ?? []).some((a) => a.assignee_id === profile?.id)
+  const canUpdateGeneralStatus = isGeneralTask && !isFinal && (isGeneralCreator || isGeneralAssignee || isAdmin)
+  const canManageAssignees = isGeneralTask && (isGeneralCreator || isAdmin)
+
   const overdue = task.deadline ? isOverdue(task.deadline) && !isFinal : false
-  const canDelete = isSuperAdmin(profile?.role) || profile?.id === task.submitted_by
+  const canDelete = isSuperAdmin(effectiveRole) || profile?.id === task.submitted_by
+
+  const existingAssigneeIds = (task.assignees ?? []).map((a) => a.assignee_id)
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -185,7 +247,7 @@ export function TaskDetailPage() {
         <Button
           variant="outline"
           onClick={scrollToActions}
-          className="md:hidden w-full border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+          className="md:hidden w-full"
         >
           <ChevronDown className="mr-2 h-4 w-4" />
           Take Action on This Task
@@ -309,6 +371,138 @@ export function TaskDetailPage() {
               {markingReady && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Mark Ready for CEO Review
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* General task: assignees list */}
+      {isGeneralTask && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="h-4 w-4" />
+              Assignees
+              <Badge variant="secondary">{(task.assignees ?? []).length}</Badge>
+            </CardTitle>
+            {canManageAssignees && !isFinal && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAssigneePicker((p) => !p)}
+              >
+                <UserPlus className="mr-1.5 h-4 w-4" />
+                Add
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {showAssigneePicker && canManageAssignees && (
+              <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+                <TaskAssigneesPicker
+                  members={teamMembers}
+                  selectedIds={pendingAssignees}
+                  onChange={setPendingAssignees}
+                  excludeIds={existingAssigneeIds}
+                  placeholder="Search team members to add..."
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    disabled={addingAssignee || pendingAssignees.length === 0}
+                    onClick={handleAddAssignees}
+                  >
+                    {addingAssignee && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    Add Assignees
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setShowAssigneePicker(false); setPendingAssignees([]) }}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+            {(task.assignees ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No one assigned yet.</p>
+            ) : (
+              <div className="divide-y">
+                {(task.assignees ?? []).map((a) => (
+                  <div key={a.id} className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2.5">
+                      {a.assignee.avatar_url ? (
+                        <img src={a.assignee.avatar_url} alt={a.assignee.full_name} className="h-7 w-7 rounded-full" />
+                      ) : (
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-xs font-medium text-background">
+                          {a.assignee.full_name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">{a.assignee.full_name}</p>
+                        {a.assignee.department && (
+                          <p className="text-xs text-muted-foreground">{a.assignee.department}</p>
+                        )}
+                      </div>
+                    </div>
+                    {canManageAssignees && !isFinal && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemoveAssignee(a.assignee_id)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* General task: status actions */}
+      {canUpdateGeneralStatus && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Update Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {task.status !== 'in_progress' && (
+                <Button
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  disabled={updatingStatus}
+                  onClick={() => handleGeneralStatusUpdate('in_progress')}
+                >
+                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Mark In Progress
+                </Button>
+              )}
+              {task.status !== 'done' && (
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  disabled={updatingStatus}
+                  onClick={() => handleGeneralStatusUpdate('done')}
+                >
+                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Mark Done
+                </Button>
+              )}
+              {task.status !== 'cancelled' && isGeneralCreator && (
+                <Button
+                  variant="outline"
+                  className="border-red-300 text-red-600 hover:bg-red-50"
+                  disabled={updatingStatus}
+                  onClick={() => handleGeneralStatusUpdate('cancelled')}
+                >
+                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancel Task
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

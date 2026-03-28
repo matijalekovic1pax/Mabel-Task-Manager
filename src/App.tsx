@@ -6,17 +6,15 @@ import { Toaster } from '@/components/ui/sonner'
 import { AppLayout } from '@/components/layout/app-layout'
 import { ProtectedRoute } from '@/components/layout/protected-route'
 
-const LoginPage = lazy(() => import('@/pages/login').then((m) => ({ default: m.LoginPage })))
+const LoginPage       = lazy(() => import('@/pages/login').then((m) => ({ default: m.LoginPage })))
 const AccessDeniedPage = lazy(() => import('@/pages/access-denied').then((m) => ({ default: m.AccessDeniedPage })))
 const AuthCallbackPage = lazy(() => import('@/pages/auth-callback').then((m) => ({ default: m.AuthCallbackPage })))
-const DashboardPage = lazy(() => import('@/pages/dashboard').then((m) => ({ default: m.DashboardPage })))
-const TasksPage = lazy(() => import('@/pages/tasks').then((m) => ({ default: m.TasksPage })))
-const NewTaskPage = lazy(() => import('@/pages/new-task').then((m) => ({ default: m.NewTaskPage })))
-const TaskDetailPage = lazy(() => import('@/pages/task-detail').then((m) => ({ default: m.TaskDetailPage })))
-const ActivityPage = lazy(() => import('@/pages/activity').then((m) => ({ default: m.ActivityPage })))
-const SettingsPage = lazy(() => import('@/pages/settings').then((m) => ({ default: m.SettingsPage })))
-const AdminPage = lazy(() => import('@/pages/admin').then((m) => ({ default: m.AdminPage })))
-const MyTasksPage = lazy(() => import('@/pages/my-tasks').then((m) => ({ default: m.MyTasksPage })))
+const TasksPage       = lazy(() => import('@/pages/tasks').then((m) => ({ default: m.TasksPage })))
+const NewTaskPage     = lazy(() => import('@/pages/new-task').then((m) => ({ default: m.NewTaskPage })))
+const TaskDetailPage  = lazy(() => import('@/pages/task-detail').then((m) => ({ default: m.TaskDetailPage })))
+const ActivityPage    = lazy(() => import('@/pages/activity').then((m) => ({ default: m.ActivityPage })))
+const SettingsPage    = lazy(() => import('@/pages/settings').then((m) => ({ default: m.SettingsPage })))
+const AdminPage       = lazy(() => import('@/pages/admin').then((m) => ({ default: m.AdminPage })))
 
 function RouteLoader() {
   return (
@@ -32,7 +30,7 @@ export default function App() {
       <AuthProvider>
         <Suspense fallback={<RouteLoader />}>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login"         element={<LoginPage />} />
             <Route path="/access-denied" element={<AccessDeniedPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
@@ -43,19 +41,13 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<DashboardPage />} />
-              <Route path="tasks" element={<TasksPage />} />
-              <Route path="tasks/new" element={<NewTaskPage />} />
-              <Route path="tasks/:id" element={<TaskDetailPage />} />
-              <Route path="my-tasks" element={<MyTasksPage />} />
-              <Route path="activity" element={<ActivityPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-              <Route
-                path="settings/team"
-                element={
-                  <Navigate to="/admin" replace />
-                }
-              />
+              <Route index element={<TasksPage />} />
+              <Route path="tasks/new"    element={<NewTaskPage />} />
+              <Route path="tasks/:id"    element={<TaskDetailPage />} />
+              <Route path="my-tasks"     element={<Navigate to="/" replace />} />
+              <Route path="activity"     element={<ActivityPage />} />
+              <Route path="settings"     element={<SettingsPage />} />
+              <Route path="settings/team" element={<Navigate to="/admin" replace />} />
               <Route
                 path="admin"
                 element={

@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { hasAdminPanelAccess } from '@/lib/utils/roles'
 import {
-  LayoutDashboard, ListTodo, PlusCircle, Activity,
-  Settings, Shield, LogOut, CheckSquare,
+  ListTodo, PlusCircle, Activity,
+  Settings, Shield, LogOut,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -13,9 +13,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/my-tasks', label: 'My Tasks', icon: CheckSquare },
-  { to: '/tasks', label: 'Tasks', icon: ListTodo },
+  { to: '/', label: 'Tasks', icon: ListTodo, end: true },
   { to: '/tasks/new', label: 'New Task', icon: PlusCircle },
   { to: '/activity', label: 'Activity', icon: Activity },
   { to: '/settings', label: 'Settings', icon: Settings },

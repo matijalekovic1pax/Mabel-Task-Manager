@@ -39,7 +39,7 @@ export function RoleSwitcher() {
           size="sm"
           className={
             viewAsRole
-              ? 'gap-1.5 bg-amber-500 text-white hover:bg-amber-600 border-amber-500'
+              ? 'gap-1.5 bg-foreground text-background hover:bg-foreground/90'
               : 'gap-1.5 text-muted-foreground'
           }
         >
@@ -99,7 +99,7 @@ export function RoleSwitcherBanner() {
   if (profile?.role !== 'super_admin' || !viewAsRole) return null
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+    <div className="flex items-center justify-between gap-3 border-b border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-700 dark:border-stone-700 dark:bg-stone-900/40 dark:text-stone-300">
       <div className="flex items-center gap-2">
         <Eye className="h-4 w-4 shrink-0" />
         <span>
@@ -112,7 +112,7 @@ export function RoleSwitcherBanner() {
         variant="ghost"
         size="sm"
         onClick={() => setViewAsRole(null)}
-        className="shrink-0 text-amber-800 hover:bg-amber-100 hover:text-amber-900 dark:text-amber-300 dark:hover:bg-amber-900/40"
+        className="shrink-0 text-stone-700 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800/40"
       >
         <EyeOff className="mr-1.5 h-3.5 w-3.5" />
         Exit preview

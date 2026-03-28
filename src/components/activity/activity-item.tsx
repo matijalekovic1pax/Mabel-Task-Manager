@@ -77,7 +77,7 @@ function EventItem({ item }: { item: ActivityEvent }) {
 function CommentItem({ item }: { item: ActivityComment }) {
   return (
     <div className="flex gap-3 px-4 py-3">
-      <div className="mt-0.5 shrink-0 text-amber-600">
+      <div className="mt-0.5 shrink-0 text-muted-foreground">
         <MessageSquare className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1 space-y-1">

@@ -28,7 +28,7 @@ import type { TaskWithSubmitter, GeneralTaskStatus } from '@/lib/types'
 
 const COLUMNS: { id: GeneralTaskStatus; label: string; icon: React.ElementType; color: string }[] = [
   { id: 'todo', label: 'To Do', icon: Circle, color: 'text-muted-foreground' },
-  { id: 'in_progress', label: 'In Progress', icon: PlayCircle, color: 'text-amber-500' },
+  { id: 'in_progress', label: 'In Progress', icon: PlayCircle, color: 'text-orange-500' },
   { id: 'done', label: 'Done', icon: CheckCircle2, color: 'text-emerald-600' },
   { id: 'cancelled', label: 'Cancelled', icon: XCircle, color: 'text-red-400' },
 ]
@@ -111,7 +111,7 @@ function TaskKanbanCard({
                 'h-6 px-2 text-xs',
                 status === 'done' && 'border-emerald-300 text-emerald-700 hover:bg-emerald-50',
                 status === 'cancelled' && 'border-red-300 text-red-600 hover:bg-red-50',
-                status === 'in_progress' && 'border-amber-300 text-amber-700 hover:bg-amber-50',
+                status === 'in_progress' && 'border-stone-300 text-stone-700 hover:bg-stone-50',
                 status === 'todo' && 'border-border text-muted-foreground hover:bg-muted',
               )}
             >

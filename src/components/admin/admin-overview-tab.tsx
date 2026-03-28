@@ -18,7 +18,7 @@ export function AdminOverviewTab({ members, allowedEmails }: AdminOverviewTabPro
   const superAdmins = members.filter((m) => m.role === 'super_admin').length
 
   const stats = [
-    { label: 'Total Users',     value: members.length,  icon: Users,      color: 'border-amber-500',   iconBg: 'bg-amber-100 text-amber-600' },
+    { label: 'Total Users',     value: members.length,  icon: Users,      color: 'border-stone-400',   iconBg: 'bg-stone-100 text-stone-600' },
     { label: 'Active',          value: active,           icon: UserCheck,  color: 'border-emerald-500', iconBg: 'bg-emerald-100 text-emerald-600' },
     { label: 'Inactive',        value: inactive,         icon: UserX,      color: 'border-stone-400',   iconBg: 'bg-stone-100 text-stone-600' },
     { label: 'Pending Invites', value: pendingInvites,   icon: Mail,       color: 'border-orange-500',  iconBg: 'bg-orange-100 text-orange-600' },

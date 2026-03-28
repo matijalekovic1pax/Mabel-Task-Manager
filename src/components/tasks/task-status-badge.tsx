@@ -4,11 +4,11 @@ import type { TaskStatus } from '@/lib/types'
 
 const statusStyles: Record<TaskStatus, string> = {
   // Approval workflow
-  pending:         'bg-amber-50 text-amber-700 border-amber-200',
+  pending:         'bg-stone-100 text-stone-600 border-stone-200',
   in_review:       'bg-orange-50 text-orange-700 border-orange-200',
   approved:        'bg-emerald-50 text-emerald-700 border-emerald-200',
   rejected:        'bg-red-50 text-red-600 border-red-200',
-  needs_more_info: 'bg-amber-100 text-amber-800 border-amber-300',
+  needs_more_info: 'bg-orange-50 text-orange-700 border-orange-200',
   deferred:        'bg-stone-100 text-stone-500 border-stone-200',
   delegated:       'bg-rose-50 text-rose-700 border-rose-200',
   resolved:        'bg-emerald-50 text-emerald-700 border-emerald-200',

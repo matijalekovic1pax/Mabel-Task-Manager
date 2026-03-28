@@ -15,7 +15,6 @@ import {
   ListTodo,
   Loader2,
 } from 'lucide-react'
-import { hasAdminAccess } from '@/lib/utils/roles'
 import type { TaskWithSubmitter } from '@/lib/types'
 import { supabase } from '@/lib/supabase/client'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
@@ -43,7 +42,7 @@ function mergeTasks(...lists: TaskWithSubmitter[][]): TaskWithSubmitter[] {
 export function DashboardPage() {
   const navigate = useNavigate()
   const { profile, effectiveRole, signOut } = useAuth()
-  const isCeo = hasAdminAccess(effectiveRole)
+  const isSuperAdmin = effectiveRole === 'super_admin'
 
   const [tasks, setTasks] = useState<TaskWithSubmitter[]>([])
   const [generalTasks, setGeneralTasks] = useState<TaskWithSubmitter[]>([])
@@ -75,7 +74,7 @@ export function DashboardPage() {
     setError(null)
 
     try {
-      const fetchPromise = isCeo
+      const fetchPromise = isSuperAdmin
         ? getCeoQueue()
         : Promise.all([
             getMySubmittedTasks(profile.id),
@@ -106,7 +105,7 @@ export function DashboardPage() {
         setRefreshing(false)
       }
     }
-  }, [isCeo, navigate, profile, signOut])
+  }, [isSuperAdmin, navigate, profile, signOut])
 
   const scheduleRefresh = useCallback((options?: { background?: boolean }) => {
     if (refreshTimerRef.current !== null) {
@@ -244,7 +243,7 @@ export function DashboardPage() {
             {getGreeting()}, {profile?.full_name?.split(' ')[0]}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isCeo ? 'CEO Decision Center' : 'Your tasks and requests in one view.'}
+            {isSuperAdmin ? 'CEO Decision Center' : 'Your tasks and requests in one view.'}
           </p>
         </div>
         <Button asChild className="hidden md:inline-flex bg-foreground text-background hover:bg-foreground/90">
@@ -271,9 +270,9 @@ export function DashboardPage() {
       {/* Unified stats block */}
       <div className="task-list grid grid-cols-2 sm:grid-cols-4">
         {[
-          { label: isCeo ? 'Needs Decision' : 'Open Tasks',    value: isCeo ? needsDecision.length    : myOpen.length,      icon: Clock },
-          { label: isCeo ? 'Waiting on Others' : 'Assigned',   value: isCeo ? waitingOnOthers.length  : myAssigned.length,  icon: AlertTriangle },
-          { label: isCeo ? 'Due Today' : 'Submitted',          value: isCeo ? dueToday.length         : mySubmitted.length, icon: ListTodo },
+          { label: isSuperAdmin ? 'Needs Decision' : 'Open Tasks',    value: isSuperAdmin ? needsDecision.length    : myOpen.length,      icon: Clock },
+          { label: isSuperAdmin ? 'Waiting on Others' : 'Assigned',   value: isSuperAdmin ? waitingOnOthers.length  : myAssigned.length,  icon: AlertTriangle },
+          { label: isSuperAdmin ? 'Due Today' : 'Submitted',          value: isSuperAdmin ? dueToday.length         : mySubmitted.length, icon: ListTodo },
           { label: 'Completed',                                  value: completed.length,                                     icon: CheckCircle2 },
         ].map((stat, i) => (
           <div
@@ -290,7 +289,7 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {isCeo && categoryBreakdown.some((c) => c.count > 0) && (
+      {isSuperAdmin && categoryBreakdown.some((c) => c.count > 0) && (
         <div className="task-list">
           {categoryBreakdown.filter((c) => c.count > 0).map((c) => (
             <div key={c.key} className="flex items-center justify-between px-5 py-3">
@@ -301,7 +300,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      {isCeo ? (
+      {isSuperAdmin ? (
         <div className="space-y-5">
           <section>
             <h2 className="mb-2.5 text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">Needs Decision</h2>

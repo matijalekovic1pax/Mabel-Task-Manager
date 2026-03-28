@@ -11,7 +11,6 @@ import { TaskFilters } from '@/components/tasks/task-filters'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PlusCircle, Loader2 } from 'lucide-react'
-import { hasAdminAccess } from '@/lib/utils/roles'
 import { supabase } from '@/lib/supabase/client'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
 import { createRequestGuard, withTimeout } from '@/lib/utils/async'
@@ -119,7 +118,7 @@ export function TasksPage() {
     try {
       let data: TaskWithSubmitter[]
 
-      if (hasAdminAccess(profile.role)) {
+      if (profile.role === 'super_admin') {
         data = await withTimeout(getTasks(baseFilters))
       } else if (view === 'submitted') {
         data = await withTimeout(getMySubmittedTasks(profile.id, baseFilters))
@@ -271,7 +270,7 @@ export function TasksPage() {
         </div>
       )}
 
-      {!hasAdminAccess(profile?.role) && (
+      {profile?.role !== 'super_admin' && (
         <div className="flex flex-wrap items-center gap-2">
           <Button variant={currentView === 'all' ? 'default' : 'outline'} size="sm" onClick={() => updateView('all')}>
             All

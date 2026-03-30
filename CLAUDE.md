@@ -35,14 +35,28 @@ GENERAL:   anyone → creates (task_type='general') → assigns to multiple peop
 - General task status transitions go through the `update_general_task_status()` Supabase RPC
 - Multiple assignees per general task via the `task_assignees` join table
 
+### Routes
+
+Defined in `src/App.tsx`. All authenticated routes nest under `AppLayout` via `ProtectedRoute`:
+
+| Path | Page | Notes |
+|---|---|---|
+| `/` | `TasksPage` | Unified tasks view (approval queue + general kanban) |
+| `/tasks/new` | `NewTaskPage` | |
+| `/tasks/:id` | `TaskDetailPage` | |
+| `/activity` | `ActivityPage` | |
+| `/settings` | `SettingsPage` | |
+| `/admin` | `AdminPage` | `super_admin` only |
+| `/my-tasks` | → `/` redirect | |
+
 ### Key directories
 
-- `src/pages/` — Route-level page components (`my-tasks.tsx` is the kanban-lite view for general tasks)
+- `src/pages/` — Route-level page components
 - `src/components/` — Feature components grouped by domain (`tasks/`, `admin/`, `notifications/`, `activity/`, `settings/`) plus `layout/` and `ui/`
 - `src/components/ui/` — Shadcn/ui component library (Radix UI based, pre-built and mostly untouched)
-- `src/components/tasks/task-assignees-picker.tsx` — Multi-select combobox for general task assignees
-- `src/components/layout/role-switcher.tsx` — Admin role-preview UI (super_admin only)
 - `src/lib/services/` — Supabase API calls, one file per domain (tasks, team, activity, comments, notifications)
+- `src/lib/utils/` — `format.ts` (dates/greetings), `async.ts` (request guards, timeouts), `roles.ts`, `constants.ts`
+- `src/lib/supabase/` — `client.ts` (singleton), `errors.ts` (typed error helpers)
 - `src/lib/types/` — Shared TypeScript types
 - `src/lib/validations/` — Zod schemas for form/data validation
 - `src/contexts/` — React context providers

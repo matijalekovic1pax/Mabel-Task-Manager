@@ -44,6 +44,7 @@ export default function App() {
               <Route index element={<TasksPage />} />
               <Route path="tasks/new"    element={<NewTaskPage />} />
               <Route path="tasks/:id"    element={<TaskDetailPage />} />
+              <Route path="tasks"         element={<Navigate to="/" replace />} />
               <Route path="my-tasks"     element={<Navigate to="/" replace />} />
               <Route path="activity"     element={<ActivityPage />} />
               <Route path="settings"     element={<SettingsPage />} />

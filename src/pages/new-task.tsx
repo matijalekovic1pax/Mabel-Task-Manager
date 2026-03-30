@@ -27,7 +27,6 @@ export function NewTaskPage() {
   const [error, setError] = useState<string | null>(null)
   const [teamMembers, setTeamMembers] = useState<Profile[]>([])
   const [assigneeIds, setAssigneeIds] = useState<string[]>([])
-  const [visibility, setVisibility] = useState<'company' | 'private'>('company')
 
   useEffect(() => {
     getActiveTeamMembers()
@@ -79,7 +78,6 @@ export function NewTaskPage() {
       priority: formData.get('priority') as string,
       deadline: (formData.get('deadline') as string) || null,
       assignee_ids: assigneeIds,
-      visibility,
     }
 
     const validated = generalTaskSchema.safeParse(raw)
@@ -265,16 +263,6 @@ export function NewTaskPage() {
                       {Object.entries(PRIORITY_CONFIG).map(([key, config]) => (
                         <SelectItem key={key} value={key}>{config.label}</SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Visibility</Label>
-                  <Select value={visibility} onValueChange={(v) => setVisibility(v as 'company' | 'private')}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="company">Company-wide</SelectItem>
-                      <SelectItem value="private">Private (assignees only)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

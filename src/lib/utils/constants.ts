@@ -206,6 +206,7 @@ export const DEPARTMENTS = [
   'Business Development',
   'Finance & Admin',
   'Marketing',
+  'IT',
 ] as const
 
 export type Department = (typeof DEPARTMENTS)[number]

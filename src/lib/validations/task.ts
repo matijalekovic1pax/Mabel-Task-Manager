@@ -80,7 +80,7 @@ export const generalTaskSchema = z.object({
   assignee_ids: z
     .array(z.string().uuid())
     .max(20, 'You can assign at most 20 people'),
-  visibility: z.enum(['private', 'company']).default('company'),
+  visibility: z.literal('company').default('company'),
 })
 
 export type GeneralTaskInput = z.infer<typeof generalTaskSchema>

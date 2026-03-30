@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import {
+  getTasks,
   getMySubmittedTasks,
   getMyAssignedTasks,
   getMyAssignedGeneralTasks,
@@ -21,7 +22,7 @@ import { getGreeting, formatDeadline, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, PRIORITY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
 import {
   PlusCircle, AlertTriangle, CheckCircle2, Loader2,
-  Circle, PlayCircle, X, Inbox, Pencil, Search,
+  Circle, PlayCircle, X, Inbox, Pencil, Search, LayoutGrid,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
@@ -198,18 +199,20 @@ function TaskRow({
 
 export function TasksPage() {
   const navigate = useNavigate()
-  const { profile, signOut } = useAuth()
+  const { profile, effectiveRole, signOut } = useAuth()
+  const isSuperAdmin = effectiveRole === 'super_admin'
 
   const [submittedApproval, setSubmittedApproval] = useState<TaskWithSubmitter[]>([])
   const [assignedApproval, setAssignedApproval]   = useState<TaskWithSubmitter[]>([])
   const [assignedGeneral, setAssignedGeneral]     = useState<TaskWithSubmitter[]>([])
   const [createdGeneral, setCreatedGeneral]       = useState<TaskWithSubmitter[]>([])
+  const [allTasks, setAllTasks]                   = useState<TaskWithSubmitter[]>([])
   const [loading, setLoading]                     = useState(true)
   const [refreshing, setRefreshing]               = useState(false)
   const [error, setError]                         = useState<string | null>(null)
 
   // Global view toggle
-  const [view, setView] = useState<'assigned' | 'created'>('assigned')
+  const [view, setView] = useState<'assigned' | 'created' | 'all'>('assigned')
 
   // Filters — client-side
   const [search, setSearch]                 = useState('')
@@ -237,11 +240,12 @@ export function TasksPage() {
     setError(null)
 
     try {
-      const [submitted, assigned, assignedGen, createdGen] = await withTimeout(Promise.all([
+      const [submitted, assigned, assignedGen, createdGen, all] = await withTimeout(Promise.all([
         getMySubmittedTasks(profile.id),
         getMyAssignedTasks(profile.id),
         getMyAssignedGeneralTasks(profile.id),
         getCompanyTasks({ submittedBy: profile.id }),
+        isSuperAdmin ? getTasks() : Promise.resolve([] as TaskWithSubmitter[]),
       ]))
 
       if (!guardRef.current.isLatest(requestId)) return
@@ -250,6 +254,7 @@ export function TasksPage() {
       setAssignedApproval(assigned)
       setAssignedGeneral(assignedGen)
       setCreatedGeneral(createdGen)
+      setAllTasks(all)
       hasLoadedRef.current = true
     } catch (err) {
       if (!guardRef.current.isLatest(requestId)) return
@@ -326,7 +331,8 @@ export function TasksPage() {
     () => dedupe([...submittedApproval, ...createdGeneral]),
     [submittedApproval, createdGeneral],
   )
-  const baseTasks = view === 'assigned' ? assignedBase : createdBase
+  const allBase = useMemo(() => dedupe(allTasks), [allTasks])
+  const baseTasks = view === 'assigned' ? assignedBase : view === 'created' ? createdBase : allBase
 
   // ── Stats (from pre-filter base) ──
   const stats = useMemo(() => ({
@@ -434,26 +440,30 @@ export function TasksPage() {
       {/* ── Global view toggle ── */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="inline-flex rounded-xl bg-muted p-1 gap-0.5">
-          {(['assigned', 'created'] as const).map(v => (
+          {([
+            { id: 'assigned', label: 'Assigned to Me', icon: Inbox,       count: assignedBase.length },
+            { id: 'created',  label: 'Created by Me',  icon: Pencil,      count: createdBase.length },
+            ...(isSuperAdmin
+              ? [{ id: 'all', label: 'All Tasks', icon: LayoutGrid, count: allBase.length }]
+              : []),
+          ] as { id: 'assigned' | 'created' | 'all'; label: string; icon: React.ElementType; count: number }[]).map(v => (
             <button
-              key={v}
-              onClick={() => setView(v)}
+              key={v.id}
+              onClick={() => setView(v.id)}
               className={cn(
                 'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150',
-                view === v
+                view === v.id
                   ? 'bg-background shadow-sm text-foreground'
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {v === 'assigned'
-                ? <Inbox className="h-4 w-4 shrink-0" />
-                : <Pencil className="h-4 w-4 shrink-0" />}
-              {v === 'assigned' ? 'Assigned to Me' : 'Created by Me'}
+              <v.icon className="h-4 w-4 shrink-0" />
+              {v.label}
               <span className={cn(
                 'text-xs font-normal tabular-nums',
-                view === v ? 'text-muted-foreground' : 'opacity-40',
+                view === v.id ? 'text-muted-foreground' : 'opacity-40',
               )}>
-                {v === 'assigned' ? assignedBase.length : createdBase.length}
+                {v.count}
               </span>
             </button>
           ))}
@@ -580,7 +590,9 @@ export function TasksPage() {
                 ? 'No tasks match your filters.'
                 : view === 'assigned'
                   ? 'No tasks assigned to you yet.'
-                  : "You haven't created any tasks yet."}
+                  : view === 'created'
+                    ? "You haven't created any tasks yet."
+                    : 'No tasks found in the database.'}
             </p>
             {!hasFilters && (
               <Button asChild size="sm" variant="outline">

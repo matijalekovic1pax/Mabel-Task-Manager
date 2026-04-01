@@ -439,10 +439,10 @@ export function TasksPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <div className="inline-flex rounded-xl bg-muted p-1 gap-0.5">
           {([
-            { id: 'assigned', label: 'Assigned to Me', icon: Inbox,       count: assignedBase.length },
-            { id: 'created',  label: 'Created by Me',  icon: Pencil,      count: createdBase.length },
+            { id: 'assigned', label: 'Assigned to Me', icon: Inbox,       count: assignedBase.filter(t => !FINAL_STATUSES.includes(t.status)).length },
+            { id: 'created',  label: 'Created by Me',  icon: Pencil,      count: createdBase.filter(t => !FINAL_STATUSES.includes(t.status)).length },
             ...(isSuperAdmin
-              ? [{ id: 'all', label: 'All Tasks', icon: LayoutGrid, count: allBase.length }]
+              ? [{ id: 'all', label: 'All Tasks', icon: LayoutGrid, count: allBase.filter(t => !FINAL_STATUSES.includes(t.status)).length }]
               : []),
           ] as { id: 'assigned' | 'created' | 'all'; label: string; icon: React.ElementType; count: number }[]).map(v => (
             <button

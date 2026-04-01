@@ -22,7 +22,7 @@ import { getGreeting, formatDeadline, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, PRIORITY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
 import {
   PlusCircle, AlertTriangle, CheckCircle2, Loader2,
-  Circle, PlayCircle, X, Inbox, Pencil, Search, LayoutGrid,
+  Circle, PlayCircle, X, Inbox, Pencil, Search, LayoutGrid, ChevronDown,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
@@ -377,6 +377,11 @@ export function TasksPage() {
 
   const hasFilters = search || filterStatus !== 'all' || filterPriority !== 'all' || filterCategory !== 'all'
 
+  const openTasks     = activeTasks.filter(t => !FINAL_STATUSES.includes(t.status))
+  const finishedTasks = activeTasks.filter(t => FINAL_STATUSES.includes(t.status))
+
+  const [showFinished, setShowFinished] = useState(false)
+
   function clearFilters() {
     setSearch(''); setFilterStatus('all'); setFilterPriority('all'); setFilterCategory('all')
   }
@@ -567,15 +572,15 @@ export function TasksPage() {
       {/* ── Task count row ── */}
       <div className="flex items-center justify-between -mt-1">
         <p className="text-xs text-muted-foreground/60">
-          {activeTasks.length === 0
-            ? 'No tasks'
-            : `${activeTasks.length} ${activeTasks.length === 1 ? 'task' : 'tasks'}`}
+          {openTasks.length === 0
+            ? 'No open tasks'
+            : `${openTasks.length} open ${openTasks.length === 1 ? 'task' : 'tasks'}`}
           {hasFilters && ' · filtered'}
         </p>
       </div>
 
-      {/* ── Task list ── */}
-      {activeTasks.length === 0 ? (
+      {/* ── Open task list ── */}
+      {openTasks.length === 0 ? (
         <div className="task-list">
           <div className="flex flex-col items-center gap-3 py-12">
             <p className="text-sm text-muted-foreground">
@@ -599,13 +604,41 @@ export function TasksPage() {
         </div>
       ) : (
         <div className="task-list">
-          {activeTasks.map(task => (
+          {openTasks.map(task => (
             <TaskRow
               key={task.id}
               task={task}
               onStatusChange={handleGeneralStatusChange}
             />
           ))}
+        </div>
+      )}
+
+      {/* ── Finished tasks (collapsible) ── */}
+      {finishedTasks.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowFinished(v => !v)}
+            className="flex w-full items-center gap-2 px-1 py-1.5 text-xs font-medium text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          >
+            <ChevronDown className={cn(
+              'h-3.5 w-3.5 transition-transform duration-200',
+              showFinished && 'rotate-180',
+            )} />
+            Finished tasks
+            <span className="ml-0.5 tabular-nums">({finishedTasks.length})</span>
+          </button>
+          {showFinished && (
+            <div className="task-list mt-1">
+              {finishedTasks.map(task => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  onStatusChange={handleGeneralStatusChange}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

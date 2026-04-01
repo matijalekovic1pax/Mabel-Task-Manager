@@ -124,6 +124,11 @@ export const STATUS_CONFIG: Record<TaskStatus, StatusConfig> = {
     color: 'text-blue-700 bg-blue-50 border-blue-200',
     isFinal: false,
   },
+  blocked: {
+    label: 'Blocked',
+    color: 'text-rose-700 bg-rose-50 border-rose-200',
+    isFinal: false,
+  },
   approved: {
     label: 'Approved',
     color: 'text-emerald-700 bg-emerald-50 border-emerald-200',

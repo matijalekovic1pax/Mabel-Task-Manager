@@ -34,10 +34,12 @@ const COLUMNS: { id: GeneralTaskStatus; label: string; icon: React.ElementType; 
 ]
 
 const STATUS_TRANSITIONS: Record<GeneralTaskStatus, GeneralTaskStatus[]> = {
-  todo: ['in_progress', 'cancelled'],
-  in_progress: ['done', 'todo', 'cancelled'],
-  done: [],
-  cancelled: [],
+  todo:        ['in_progress', 'cancelled'],
+  in_progress: ['in_review', 'blocked', 'done', 'cancelled'],
+  blocked:     ['in_progress', 'cancelled'],
+  in_review:   ['done', 'in_progress', 'cancelled'],
+  done:        [],
+  cancelled:   [],
 }
 
 function TaskKanbanCard({

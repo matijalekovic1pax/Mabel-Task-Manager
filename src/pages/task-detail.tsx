@@ -74,7 +74,6 @@ export function TaskDetailPage() {
 
   const isAdmin = hasAdminAccess(effectiveRole)
   const canWrite = isCeo(effectiveRole)
-  const readOnly = isSuperAdmin(effectiveRole)
 
   const refresh = useCallback(async () => {
     if (!id) {
@@ -467,53 +466,58 @@ export function TaskDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {/* todo → start */}
-              {task.status === 'todo' && (
-                <Button
-                  variant="outline"
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                  disabled={updatingStatus}
-                  onClick={() => handleGeneralStatusUpdate('in_progress')}
-                >
+              {task.status === 'todo' && (<>
+                <Button variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('in_progress')}>
                   {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <PlayCircle className="mr-2 h-4 w-4" />
-                  Start Task
+                  <PlayCircle className="mr-2 h-4 w-4" />Start Task
                 </Button>
-              )}
-              {/* in_progress → done */}
-              {task.status === 'in_progress' && (
-                <Button
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                  disabled={updatingStatus}
-                  onClick={() => handleGeneralStatusUpdate('done')}
-                >
+              </>)}
+
+              {task.status === 'in_progress' && (<>
+                <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('in_review')}>
                   {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Mark Done
+                  Send for Review
                 </Button>
-              )}
-              {/* in_progress → pause back to todo */}
-              {task.status === 'in_progress' && (
-                <Button
-                  variant="outline"
-                  disabled={updatingStatus}
-                  onClick={() => handleGeneralStatusUpdate('todo')}
-                >
+                <Button variant="outline" className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('blocked')}>
                   {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Pause
+                  Mark Blocked
                 </Button>
-              )}
-              {/* todo or in_progress → cancel (creator or admin only) */}
-              {['todo', 'in_progress'].includes(task.status) && (isGeneralCreator || isAdmin) && (
-                <Button
-                  variant="outline"
-                  className="border-red-300 text-red-600 hover:bg-red-50"
-                  disabled={updatingStatus}
-                  onClick={() => handleGeneralStatusUpdate('cancelled')}
-                >
+                <Button className="bg-emerald-600 hover:bg-emerald-700"
+                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('done')}>
                   {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Cancel Task
+                  <CheckCircle2 className="mr-2 h-4 w-4" />Mark Done
+                </Button>
+              </>)}
+
+              {task.status === 'blocked' && (<>
+                <Button variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('in_progress')}>
+                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <PlayCircle className="mr-2 h-4 w-4" />Resume
+                </Button>
+              </>)}
+
+              {task.status === 'in_review' && (<>
+                <Button className="bg-emerald-600 hover:bg-emerald-700"
+                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('done')}>
+                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <CheckCircle2 className="mr-2 h-4 w-4" />Approve & Close
+                </Button>
+                <Button variant="outline"
+                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('in_progress')}>
+                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Send Back
+                </Button>
+              </>)}
+
+              {!['done', 'cancelled'].includes(task.status) && (isGeneralCreator || isAdmin) && (
+                <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50"
+                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('cancelled')}>
+                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <XCircle className="mr-2 h-4 w-4" />Cancel Task
                 </Button>
               )}
             </div>
@@ -567,7 +571,7 @@ export function TaskDetailPage() {
         taskStatus={task.status}
         comments={task.comments}
         onCommentAdded={refresh}
-        readOnly={readOnly}
+        readOnly={false}
       />
     </div>
   )

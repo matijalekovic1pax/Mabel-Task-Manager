@@ -15,6 +15,7 @@ const statusStyles: Record<TaskStatus, string> = {
   // General task workflow
   todo:            'bg-stone-100 text-stone-500 border-stone-200',
   in_progress:     'bg-orange-50 text-orange-700 border-orange-200',
+  blocked:         'bg-rose-50 text-rose-700 border-rose-200',
   done:            'bg-emerald-50 text-emerald-700 border-emerald-200',
   cancelled:       'bg-stone-100 text-stone-400 border-stone-200',
 }

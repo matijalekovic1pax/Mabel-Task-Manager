@@ -388,7 +388,7 @@ export async function updateGeneralTaskStatus(
     p_note: note ?? null,
   })
 
-  if (error) throw new Error(error.message || error.details || JSON.stringify(error))
+  if (error) throw error
   return data as Task
 }
 

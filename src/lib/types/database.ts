@@ -448,6 +448,7 @@ export type Database = {
         | 'resolved'
         | 'todo'
         | 'in_progress'
+        | 'blocked'
         | 'done'
         | 'cancelled'
       notification_type:
@@ -526,4 +527,4 @@ export type TaskWithDetails = Task & {
 }
 
 /** Status values used by the general task workflow */
-export type GeneralTaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled'
+export type GeneralTaskStatus = 'todo' | 'in_progress' | 'blocked' | 'in_review' | 'done' | 'cancelled'

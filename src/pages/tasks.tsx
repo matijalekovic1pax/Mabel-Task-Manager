@@ -42,13 +42,17 @@ const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, 
 
 const STATUS_TRANSITIONS: Record<GeneralTaskStatus, GeneralTaskStatus[]> = {
   todo:        ['in_progress', 'cancelled'],
-  in_progress: ['done', 'todo', 'cancelled'],
+  in_progress: ['in_review', 'blocked', 'done', 'cancelled'],
+  blocked:     ['in_progress', 'cancelled'],
+  in_review:   ['done', 'in_progress', 'cancelled'],
   done:        [],
   cancelled:   [],
 }
 
 const STATUS_ACTION_LABELS: Partial<Record<GeneralTaskStatus, string>> = {
   in_progress: 'Start',
+  in_review:   'Send for Review',
+  blocked:     'Mark Blocked',
   done:        'Mark Done',
   todo:        'Reopen',
   cancelled:   'Cancel',
@@ -164,6 +168,8 @@ function TaskRow({
                   s === 'done'        && 'border-emerald-300 text-emerald-700 hover:bg-emerald-50',
                   s === 'cancelled'   && 'border-red-300 text-red-600 hover:bg-red-50',
                   s === 'in_progress' && 'border-orange-300 text-orange-700 hover:bg-orange-50',
+                  s === 'in_review'   && 'border-blue-300 text-blue-700 hover:bg-blue-50',
+                  s === 'blocked'     && 'border-rose-300 text-rose-700 hover:bg-rose-50',
                   s === 'todo'        && 'border-border text-muted-foreground hover:bg-muted',
                 )}
               >

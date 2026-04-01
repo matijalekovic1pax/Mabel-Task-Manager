@@ -1,10 +1,9 @@
 -- ============================================================
 -- 006_fix_general_task_status.sql
--- Fixes two bugs in update_general_task_status() introduced in 005:
---   1. The function did not set app.task_transition = '1' before
---      UPDATE, so trg_enforce_task_status_transition blocked it.
---   2. The function inserted action = 'status_update' into task_events
---      but the task_events_action_check constraint did not include it.
+-- Fixes two bugs in update_general_task_status() from 005:
+--   1. Missing set_config flag → blocked by trigger
+--   2. 'status_update' not in task_events_action_check constraint
+-- Also adds 'blocked' status and full notification logic.
 -- ============================================================
 
 -- Fix 1: add 'status_update' to the allowed actions constraint
@@ -24,7 +23,10 @@ ALTER TABLE public.task_events
     'status_update'
   ));
 
--- Fix 2: replace function — set the transition flag before UPDATE
+-- Add 'blocked' to the task_status enum
+ALTER TYPE task_status ADD VALUE IF NOT EXISTS 'blocked';
+
+-- Fix 2 + full notification logic
 CREATE OR REPLACE FUNCTION update_general_task_status(
   p_task_id UUID,
   p_status  TEXT,
@@ -42,14 +44,12 @@ DECLARE
   v_to_status     task_status;
   v_actor_profile profiles%ROWTYPE;
 BEGIN
-  IF p_status NOT IN ('todo', 'in_progress', 'done', 'cancelled') THEN
+  IF p_status NOT IN ('todo', 'in_progress', 'blocked', 'in_review', 'done', 'cancelled') THEN
     RAISE EXCEPTION 'Invalid status for general task: %', p_status;
   END IF;
 
   SELECT * INTO v_task FROM tasks WHERE id = p_task_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Task not found';
-  END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Task not found'; END IF;
 
   IF v_task.task_type <> 'general' THEN
     RAISE EXCEPTION 'update_general_task_status can only be used on general tasks';
@@ -90,15 +90,54 @@ BEGIN
   INSERT INTO task_events (task_id, actor_id, action, from_status, to_status, note)
   VALUES (p_task_id, v_actor_id, 'status_update', v_from_status, v_to_status, p_note);
 
+  -- Notify creator: task sent for review
+  IF p_status = 'in_review' AND v_actor_id <> v_task.submitted_by THEN
+    INSERT INTO notifications (recipient_id, type, title, message, task_id)
+    VALUES (
+      v_task.submitted_by, 'task_updated', 'Task ready for review',
+      format('"%s" has been sent for review by %s', v_task.title, v_actor_profile.full_name),
+      p_task_id
+    );
+  END IF;
+
+  -- Notify creator: task is blocked
+  IF p_status = 'blocked' AND v_actor_id <> v_task.submitted_by THEN
+    INSERT INTO notifications (recipient_id, type, title, message, task_id)
+    VALUES (
+      v_task.submitted_by, 'task_updated', 'Task is blocked',
+      format('"%s" has been marked as blocked by %s', v_task.title, v_actor_profile.full_name),
+      p_task_id
+    );
+  END IF;
+
+  -- Notify creator: task completed
   IF p_status = 'done' AND v_actor_id <> v_task.submitted_by THEN
     INSERT INTO notifications (recipient_id, type, title, message, task_id)
     VALUES (
-      v_task.submitted_by,
-      'task_completed',
-      'Task completed',
+      v_task.submitted_by, 'task_completed', 'Task completed',
       format('"%s" has been marked as done by %s', v_task.title, v_actor_profile.full_name),
       p_task_id
     );
+  END IF;
+
+  -- Notify assignees: task sent back from review for rework
+  IF p_status = 'in_progress' AND v_from_status = 'in_review' THEN
+    INSERT INTO notifications (recipient_id, type, title, message, task_id)
+    SELECT ta.assignee_id, 'task_updated', 'Task sent back for rework',
+      format('"%s" has been sent back for rework by %s', v_task.title, v_actor_profile.full_name),
+      p_task_id
+    FROM task_assignees ta
+    WHERE ta.task_id = p_task_id AND ta.assignee_id <> v_actor_id;
+  END IF;
+
+  -- Notify assignees: task cancelled
+  IF p_status = 'cancelled' THEN
+    INSERT INTO notifications (recipient_id, type, title, message, task_id)
+    SELECT ta.assignee_id, 'task_updated', 'Task cancelled',
+      format('"%s" has been cancelled by %s', v_task.title, v_actor_profile.full_name),
+      p_task_id
+    FROM task_assignees ta
+    WHERE ta.task_id = p_task_id AND ta.assignee_id <> v_actor_id;
   END IF;
 
   RETURN v_task;

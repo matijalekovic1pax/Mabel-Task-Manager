@@ -98,10 +98,10 @@ function TaskRow({
     <div className={cn(
       'flex items-start gap-4 px-5 py-3.5 transition-colors duration-100',
       PRIORITY_STRIPE[task.priority],
-      overdue          && 'bg-red-50/50',
+      overdue        && 'bg-red-50/50',
       isUrgentActive && !overdue && 'bg-orange-50/25',
-      isFinal          && 'opacity-55',
-      !isGeneral       && 'group hover:bg-accent/50 cursor-pointer',
+      isFinal        && 'opacity-55',
+      'group hover:bg-accent/50 cursor-pointer',
     )}>
       {/* Main content */}
       <div className="min-w-0 flex-1">
@@ -124,19 +124,9 @@ function TaskRow({
         </div>
 
         {/* Title */}
-        {isGeneral ? (
-          <Link
-            to={`/tasks/${task.id}`}
-            onClick={e => e.stopPropagation()}
-            className="text-sm font-medium leading-snug hover:underline underline-offset-2"
-          >
-            {task.title}
-          </Link>
-        ) : (
-          <p className="text-sm font-medium leading-snug group-hover:text-foreground/80 transition-colors">
-            {task.title}
-          </p>
-        )}
+        <p className="text-sm font-medium leading-snug group-hover:text-foreground/80 transition-colors">
+          {task.title}
+        </p>
 
         {/* Meta */}
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
@@ -168,7 +158,7 @@ function TaskRow({
                 size="sm"
                 variant="outline"
                 disabled={updating}
-                onClick={e => { e.stopPropagation(); void handleTransition(s) }}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); void handleTransition(s) }}
                 className={cn(
                   'h-6 px-2 text-xs',
                   s === 'done'        && 'border-emerald-300 text-emerald-700 hover:bg-emerald-50',
@@ -187,10 +177,7 @@ function TaskRow({
     </div>
   )
 
-  if (!isGeneral) {
-    return <Link to={`/tasks/${task.id}`} className="block">{inner}</Link>
-  }
-  return <div>{inner}</div>
+  return <Link to={`/tasks/${task.id}`} className="block">{inner}</Link>
 }
 
 // ─────────────────────────────────────────────

@@ -467,7 +467,8 @@ export function TaskDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {task.status !== 'in_progress' && (
+              {/* todo → start */}
+              {task.status === 'todo' && (
                 <Button
                   variant="outline"
                   className="border-orange-300 text-orange-700 hover:bg-orange-50"
@@ -476,10 +477,11 @@ export function TaskDetailPage() {
                 >
                   {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   <PlayCircle className="mr-2 h-4 w-4" />
-                  Mark In Progress
+                  Start Task
                 </Button>
               )}
-              {task.status !== 'done' && (
+              {/* in_progress → done */}
+              {task.status === 'in_progress' && (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700"
                   disabled={updatingStatus}
@@ -490,7 +492,19 @@ export function TaskDetailPage() {
                   Mark Done
                 </Button>
               )}
-              {task.status !== 'cancelled' && isGeneralCreator && (
+              {/* in_progress → pause back to todo */}
+              {task.status === 'in_progress' && (
+                <Button
+                  variant="outline"
+                  disabled={updatingStatus}
+                  onClick={() => handleGeneralStatusUpdate('todo')}
+                >
+                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Pause
+                </Button>
+              )}
+              {/* todo or in_progress → cancel (creator or admin only) */}
+              {['todo', 'in_progress'].includes(task.status) && (isGeneralCreator || isAdmin) && (
                 <Button
                   variant="outline"
                   className="border-red-300 text-red-600 hover:bg-red-50"

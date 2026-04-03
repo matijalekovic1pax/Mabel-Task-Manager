@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { hasAdminPanelAccess } from '@/lib/utils/roles'
 import { ProfileForm } from '@/components/settings/profile-form'
+import { RoleSwitcher } from '@/components/layout/role-switcher'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Shield, LogOut, ChevronRight, Loader2 } from 'lucide-react'
@@ -50,6 +51,14 @@ export function SettingsPage() {
               </Link>
             </CardContent>
           </Card>
+        )}
+
+        {/* Role switcher for super_admin on mobile */}
+        {isAdmin && (
+          <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+            <span className="text-sm font-medium text-muted-foreground">Preview as role</span>
+            <RoleSwitcher />
+          </div>
         )}
 
         <Button

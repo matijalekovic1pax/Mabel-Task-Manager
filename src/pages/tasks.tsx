@@ -100,7 +100,7 @@ function TaskRow({
 
   const inner = (
     <div className={cn(
-      'flex items-start gap-4 px-5 py-3.5 transition-colors duration-100',
+      'flex items-start gap-3 px-4 py-3 md:gap-4 md:px-5 md:py-3.5 transition-colors duration-100',
       PRIORITY_STRIPE[task.priority],
       overdue        && 'bg-red-50/50',
       isUrgentActive && !overdue && 'bg-orange-50/25',
@@ -109,7 +109,7 @@ function TaskRow({
     )}>
       {/* Main content */}
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+        <div className="flex flex-wrap items-center gap-1 mb-1">
           <span className={cn(
             'inline-block shrink-0 text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded',
             isGeneral
@@ -133,13 +133,13 @@ function TaskRow({
         </p>
 
         {/* Meta */}
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <TaskCategoryIcon category={task.category} className="h-3 w-3 opacity-40" />
             {CATEGORY_CONFIG[task.category].label}
           </span>
-          <span>by {task.submitter?.full_name ?? 'Unknown'}</span>
-          <span className="font-mono-refined text-muted-foreground/35">{task.reference_number}</span>
+          <span className="hidden sm:inline">by {task.submitter?.full_name ?? 'Unknown'}</span>
+          <span className="font-mono-refined text-muted-foreground/35 hidden sm:inline">{task.reference_number}</span>
         </div>
       </div>
 
@@ -411,7 +411,7 @@ export function TasksPage() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-xl font-bold tracking-tight md:text-2xl">
             {getGreeting()}, {profile?.full_name?.split(' ')[0]}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -480,7 +480,7 @@ export function TasksPage() {
       {/* ── Stats strip ── */}
       <div className="task-list grid grid-cols-2 sm:grid-cols-4">
         {[
-          { label: 'Open Tasks',  value: stats.open,       icon: Circle,       urgent: false },
+          { label: 'Open',        value: stats.open,       icon: Circle,       urgent: false },
           { label: 'Urgent',      value: stats.urgent,     icon: AlertTriangle, urgent: stats.urgent > 0 },
           { label: 'In Progress', value: stats.inProgress, icon: PlayCircle,   urgent: false },
           { label: 'Completed',   value: stats.done,       icon: CheckCircle2, urgent: false },
@@ -488,16 +488,17 @@ export function TasksPage() {
           <div
             key={s.label}
             className={cn(
-              'px-6 py-5',
-              i > 0 && 'border-l border-border/60',
+              'px-4 py-4 md:px-6 md:py-5',
+              i % 2 !== 0 && 'border-l border-border/60',
               i >= 2 && 'border-t border-border/60 sm:border-t-0',
+              i >= 2 && i % 2 === 0 && 'sm:border-l sm:border-border/60',
             )}
           >
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/55">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/55 md:text-xs">
               {s.label}
             </p>
             <p className={cn(
-              'mt-1.5 text-3xl font-bold tracking-tight',
+              'mt-1 text-2xl font-bold tracking-tight md:mt-1.5 md:text-3xl',
               s.urgent ? 'text-red-600' : 'text-foreground',
             )}>
               {s.value}

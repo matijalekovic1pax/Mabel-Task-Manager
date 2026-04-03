@@ -195,7 +195,7 @@ export function TaskDetailPage() {
   if (error || !task) {
     return (
       <div className="mx-auto max-w-4xl space-y-4">
-        <Button variant="ghost" asChild><Link to="/tasks"><ArrowLeft className="mr-2 h-4 w-4" />Back to Tasks</Link></Button>
+        <Button variant="ghost" size="sm" asChild><Link to="/"><ArrowLeft className="mr-1.5 h-4 w-4" />Back to Tasks</Link></Button>
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">{error ?? 'Task not found.'}</p>
@@ -228,15 +228,22 @@ export function TaskDetailPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" asChild><Link to="/tasks"><ArrowLeft className="mr-2 h-4 w-4" />Back to Tasks</Link></Button>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/">
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">Back to Tasks</span>
+            <span className="sm:hidden">Back</span>
+          </Link>
+        </Button>
         {canDelete && (
           <Button
             variant="destructive"
             size="sm"
             onClick={() => setShowDeleteDialog(true)}
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete Task
+            <Trash2 className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">Delete Task</span>
+            <span className="sm:hidden">Delete</span>
           </Button>
         )}
       </div>

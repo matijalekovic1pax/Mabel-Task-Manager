@@ -1,33 +1,22 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ListTodo, PlusCircle, CheckSquare, Settings } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, Activity, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface NavItem {
-  to: string
-  label: string
-  icon: React.ElementType
-  end?: boolean
-  isCenter?: boolean
-}
-
-const navItems: NavItem[] = [
-  { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/my-tasks', label: 'My Tasks', icon: CheckSquare },
-  { to: '/tasks/new', label: 'New', icon: PlusCircle, isCenter: true },
-  { to: '/tasks', label: 'Tasks', icon: ListTodo },
+const navItems = [
+  { to: '/', label: 'Tasks', icon: LayoutDashboard, end: true },
+  { to: '/activity', label: 'Activity', icon: Activity },
+  { to: '/tasks/new', label: 'New', icon: PlusCircle, isNew: true },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
 export function BottomNav() {
-  const items = navItems
-
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-md"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/96 backdrop-blur-md"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex h-16 items-stretch">
-        {items.map((item) => (
+        {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -35,39 +24,48 @@ export function BottomNav() {
             className="flex flex-1 items-stretch"
           >
             {({ isActive }) =>
-              item.isCenter ? (
-                <div className="flex flex-1 flex-col items-center justify-center -mt-5">
+              item.isNew ? (
+                /* ── New Task — prominent filled button ── */
+                <div className="flex flex-1 flex-col items-center justify-center gap-0.5">
                   <div
                     className={cn(
-                      'flex h-14 w-14 items-center justify-center rounded-full shadow-md transition-all',
-                      isActive ? 'bg-foreground' : 'bg-foreground/90'
+                      'flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150',
+                      isActive
+                        ? 'bg-foreground scale-95'
+                        : 'bg-foreground/90 shadow-sm',
                     )}
                   >
-                    <item.icon className="h-6 w-6 text-background" />
+                    <item.icon className="h-5 w-5 text-background" />
                   </div>
-                  <span className="mt-1 text-[10px] font-medium text-muted-foreground">
+                  <span
+                    className={cn(
+                      'text-[10px] font-medium transition-colors',
+                      isActive ? 'text-foreground' : 'text-muted-foreground',
+                    )}
+                  >
                     {item.label}
                   </span>
                 </div>
               ) : (
+                /* ── Standard tab ── */
                 <div className="flex flex-1 flex-col items-center justify-center gap-0.5">
                   <div
                     className={cn(
-                      'flex h-8 w-12 items-center justify-center rounded-full transition-colors',
-                      isActive ? 'bg-foreground/8' : ''
+                      'flex h-8 w-12 items-center justify-center rounded-full transition-colors duration-150',
+                      isActive ? 'bg-foreground/8' : '',
                     )}
                   >
                     <item.icon
                       className={cn(
-                        'h-5 w-5 transition-colors',
-                        isActive ? 'text-foreground' : 'text-muted-foreground'
+                        'h-5 w-5 transition-colors duration-150',
+                        isActive ? 'text-foreground' : 'text-muted-foreground',
                       )}
                     />
                   </div>
                   <span
                     className={cn(
-                      'text-[10px] font-medium transition-colors',
-                      isActive ? 'text-foreground' : 'text-muted-foreground'
+                      'text-[10px] font-medium transition-colors duration-150',
+                      isActive ? 'text-foreground' : 'text-muted-foreground',
                     )}
                   >
                     {item.label}

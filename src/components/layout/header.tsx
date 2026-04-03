@@ -6,7 +6,7 @@ export function Header() {
   const { profile } = useAuth()
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background px-4">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background/95 backdrop-blur-md px-4">
       {/* Brand mark — mobile only (desktop has it in the sidebar) */}
       <div className="flex items-center gap-2.5 md:hidden">
         <div

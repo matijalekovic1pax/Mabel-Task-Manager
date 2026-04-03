@@ -137,11 +137,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    overflow-x: clip; /* prevent horizontal scroll / page-slide on mobile */
+  }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    width: 100%;
   }
 }
 
@@ -202,3 +207,10 @@
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover { background: oklch(0.76 0.012 68); }
+
+/* ── Scrollbar hidden (for horizontal scroll lanes) ─── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar { display: none; }

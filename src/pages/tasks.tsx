@@ -154,8 +154,9 @@ function TaskRow({
             {formatDeadline(task.deadline)}
           </span>
         )}
+        {/* Action buttons — hidden on mobile (tap row to open detail) */}
         {isGeneral && nextStatuses.length > 0 && (
-          <div className="flex flex-wrap gap-1 justify-end">
+          <div className="hidden sm:flex flex-wrap gap-1 justify-end">
             {nextStatuses.map(s => (
               <Button
                 key={s}
@@ -436,41 +437,44 @@ export function TasksPage() {
       )}
 
       {/* ── Global view toggle ── */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="inline-flex rounded-xl bg-muted p-1 gap-0.5">
-          {([
-            { id: 'assigned', label: 'Assigned to Me', icon: Inbox,       count: assignedBase.filter(t => !FINAL_STATUSES.includes(t.status)).length },
-            { id: 'created',  label: 'Created by Me',  icon: Pencil,      count: createdBase.filter(t => !FINAL_STATUSES.includes(t.status)).length },
-            ...(isSuperAdmin
-              ? [{ id: 'all', label: 'All Tasks', icon: LayoutGrid, count: allBase.filter(t => !FINAL_STATUSES.includes(t.status)).length }]
-              : []),
-          ] as { id: 'assigned' | 'created' | 'all'; label: string; icon: React.ElementType; count: number }[]).map(v => (
-            <button
-              key={v.id}
-              onClick={() => setView(v.id)}
-              className={cn(
-                'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150',
-                view === v.id
-                  ? 'bg-background shadow-sm text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <v.icon className="h-4 w-4 shrink-0" />
-              {v.label}
-              <span className={cn(
-                'text-xs font-normal tabular-nums',
-                view === v.id ? 'text-muted-foreground' : 'opacity-40',
-              )}>
-                {v.count}
-              </span>
-            </button>
-          ))}
+      <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-3 min-w-max md:min-w-0">
+          <div className="inline-flex rounded-xl bg-muted p-1 gap-0.5">
+            {([
+              { id: 'assigned', label: 'Assigned to Me', mobileLabel: 'Assigned', icon: Inbox,       count: assignedBase.filter(t => !FINAL_STATUSES.includes(t.status)).length },
+              { id: 'created',  label: 'Created by Me',  mobileLabel: 'Created',  icon: Pencil,      count: createdBase.filter(t => !FINAL_STATUSES.includes(t.status)).length },
+              ...(isSuperAdmin
+                ? [{ id: 'all', label: 'All Tasks', mobileLabel: 'All', icon: LayoutGrid, count: allBase.filter(t => !FINAL_STATUSES.includes(t.status)).length }]
+                : []),
+            ] as { id: 'assigned' | 'created' | 'all'; label: string; mobileLabel: string; icon: React.ElementType; count: number }[]).map(v => (
+              <button
+                key={v.id}
+                onClick={() => setView(v.id)}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
+                  view === v.id
+                    ? 'bg-background shadow-sm text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <v.icon className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">{v.label}</span>
+                <span className="sm:hidden">{v.mobileLabel}</span>
+                <span className={cn(
+                  'text-xs font-normal tabular-nums',
+                  view === v.id ? 'text-muted-foreground' : 'opacity-40',
+                )}>
+                  {v.count}
+                </span>
+              </button>
+            ))}
+          </div>
+          {refreshing && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground/60 shrink-0">
+              <Loader2 className="h-3 w-3 animate-spin" />Syncing
+            </span>
+          )}
         </div>
-        {refreshing && (
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
-            <Loader2 className="h-3 w-3 animate-spin" />Syncing
-          </span>
-        )}
       </div>
 
       {/* ── Stats strip ── */}
@@ -503,70 +507,75 @@ export function TasksPage() {
       </div>
 
       {/* ── Filter bar ── */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[160px] flex-1 max-w-xs">
+      <div className="space-y-2">
+        {/* Search — always full width */}
+        <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/45 pointer-events-none" />
           <Input
             placeholder="Search tasks…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-8 h-8 text-sm"
+            className="pl-8 h-8 text-sm w-full"
           />
         </div>
+        {/* Filter selects — horizontally scrollable on mobile */}
+        <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-2 min-w-max md:min-w-0 md:flex-wrap">
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="h-8 w-32 text-sm shrink-0">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="h-8 w-36 text-sm">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <Select value={filterPriority} onValueChange={setFilterPriority}>
+              <SelectTrigger className="h-8 w-28 text-sm shrink-0">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priorities</SelectItem>
+                {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="h-8 w-28 text-sm">
-            <SelectValue placeholder="Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Priorities</SelectItem>
-            {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="h-8 w-32 text-sm shrink-0">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {Object.entries(CATEGORY_CONFIG).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="h-8 w-36 text-sm">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {Object.entries(CATEGORY_CONFIG).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <Select value={sortMode} onValueChange={setSortMode}>
+              <SelectTrigger className="h-8 w-32 text-sm shrink-0">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="priority">By Priority</SelectItem>
+                <SelectItem value="deadline">By Deadline</SelectItem>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+              </SelectContent>
+            </Select>
 
-        <Select value={sortMode} onValueChange={setSortMode}>
-          <SelectTrigger className="h-8 w-36 text-sm">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="priority">By Priority</SelectItem>
-            <SelectItem value="deadline">By Deadline</SelectItem>
-            <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="oldest">Oldest First</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {hasFilters && (
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-muted-foreground hover:text-foreground" onClick={clearFilters}>
-            <X className="h-3.5 w-3.5 mr-1" />Clear
-          </Button>
-        )}
+            {hasFilters && (
+              <Button variant="ghost" size="sm" className="h-8 px-2 shrink-0 text-muted-foreground hover:text-foreground" onClick={clearFilters}>
+                <X className="h-3.5 w-3.5 mr-1" />Clear
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── Task count row ── */}

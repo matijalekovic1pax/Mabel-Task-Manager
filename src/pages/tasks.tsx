@@ -18,11 +18,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover'
 import { getGreeting, formatDeadline, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, PRIORITY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
 import {
   PlusCircle, AlertTriangle, CheckCircle2, Loader2,
   Circle, PlayCircle, X, Inbox, Pencil, Search, LayoutGrid, ChevronDown,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
@@ -508,9 +512,9 @@ export function TasksPage() {
       </div>
 
       {/* ── Filter bar ── */}
-      <div className="space-y-2">
-        {/* Search — always full width */}
-        <div className="relative">
+      <div className="flex items-center gap-2">
+        {/* Search */}
+        <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/45 pointer-events-none" />
           <Input
             placeholder="Search tasks…"
@@ -519,64 +523,105 @@ export function TasksPage() {
             className="pl-8 h-8 text-sm w-full"
           />
         </div>
-        {/* Filter selects — horizontally scrollable on mobile */}
-        <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-2 min-w-max md:min-w-0 md:flex-wrap">
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="h-8 w-32 text-sm shrink-0">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
-            <Select value={filterPriority} onValueChange={setFilterPriority}>
-              <SelectTrigger className="h-8 w-28 text-sm shrink-0">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Filters popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                'h-8 gap-1.5 shrink-0',
+                (filterStatus !== 'all' || filterPriority !== 'all' || filterCategory !== 'all' || sortMode !== 'priority')
+                  && 'border-foreground/40 text-foreground',
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filters
+              {(filterStatus !== 'all' || filterPriority !== 'all' || filterCategory !== 'all' || sortMode !== 'priority') && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-foreground text-[9px] font-bold text-background">
+                  {[filterStatus !== 'all', filterPriority !== 'all', filterCategory !== 'all', sortMode !== 'priority'].filter(Boolean).length}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-64 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Filters</p>
+              {hasFilters && (
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground" onClick={clearFilters}>
+                  <X className="h-3 w-3 mr-1" />Clear all
+                </Button>
+              )}
+            </div>
 
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="h-8 w-32 text-sm shrink-0">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {Object.entries(CATEGORY_CONFIG).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={sortMode} onValueChange={setSortMode}>
-              <SelectTrigger className="h-8 w-32 text-sm shrink-0">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="priority">By Priority</SelectItem>
-                <SelectItem value="deadline">By Deadline</SelectItem>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</label>
+              <Select value={filterPriority} onValueChange={setFilterPriority}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="All Priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            {hasFilters && (
-              <Button variant="ghost" size="sm" className="h-8 px-2 shrink-0 text-muted-foreground hover:text-foreground" onClick={clearFilters}>
-                <X className="h-3.5 w-3.5 mr-1" />Clear
-              </Button>
-            )}
-          </div>
-        </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Category</label>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {Object.entries(CATEGORY_CONFIG).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sort by</label>
+              <Select value={sortMode} onValueChange={setSortMode}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="priority">By Priority</SelectItem>
+                  <SelectItem value="deadline">By Deadline</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {hasFilters && (
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0 text-muted-foreground hover:text-foreground" onClick={clearFilters}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
       {/* ── Task count row ── */}

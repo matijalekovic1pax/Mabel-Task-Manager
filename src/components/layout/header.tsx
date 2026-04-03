@@ -34,13 +34,18 @@ export function Header() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        {/* Role switcher — desktop only (too wide for mobile; use Settings on mobile) */}
+        {/* Role switcher — desktop only (use Settings page on mobile) */}
         {profile?.role === 'super_admin' && (
           <div className="hidden md:block">
             <RoleSwitcher />
           </div>
         )}
-        {profile && <NotificationBell />}
+        {/* Notification bell — desktop only on mobile the Activity icon in the bottom nav serves this */}
+        {profile && (
+          <div className="hidden md:block">
+            <NotificationBell />
+          </div>
+        )}
       </div>
     </header>
   )

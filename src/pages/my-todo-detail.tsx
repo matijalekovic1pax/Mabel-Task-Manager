@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent, type KeyboardEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import type { PersonalTodoWithItems, PersonalTodoItem } from '@/lib/types'
+import type { PersonalTodoWithItems, PersonalTodoItem, PersonalTodoLink } from '@/lib/types'
 import {
   getPersonalTodo,
   updatePersonalTodo,
@@ -9,6 +9,8 @@ import {
   createTodoItem,
   updateTodoItem,
   deleteTodoItem,
+  createTodoLink,
+  deleteTodoLink,
 } from '@/lib/services/personal-todos'
 import { formatDate } from '@/lib/utils/format'
 import { toast } from 'sonner'
@@ -22,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   ArrowLeft, Trash2, Loader2, Plus, Square, CheckSquare2,
-  X, CalendarDays, Save, Flag,
+  X, CalendarDays, Save, ExternalLink, Link2,
 } from 'lucide-react'
 import {
   StatusIcon, PRIORITY_DOT, PRIORITY_LABEL, STATUS_LABEL,
@@ -44,6 +46,7 @@ export function MyTodoDetailPage() {
 
   const [todo, setTodo]       = useState<PersonalTodoWithItems | null>(null)
   const [items, setItems]     = useState<PersonalTodoItem[]>([])
+  const [links, setLinks]     = useState<PersonalTodoLink[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -58,6 +61,12 @@ export function MyTodoDetailPage() {
   const [newItemText, setNewItemText] = useState('')
   const [addingItem, setAddingItem]   = useState(false)
   const newItemRef = useRef<HTMLInputElement>(null)
+
+  // Links add
+  const [newLinkUrl, setNewLinkUrl]     = useState('')
+  const [newLinkLabel, setNewLinkLabel] = useState('')
+  const [addingLink, setAddingLink]     = useState(false)
+  const newLinkRef = useRef<HTMLInputElement>(null)
 
   // Delete
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -76,6 +85,7 @@ export function MyTodoDetailPage() {
         if (!data) { setNotFound(true); return }
         setTodo(data)
         setItems(data.items)
+        setLinks(data.links)
         setTitle(data.title)
         setDescription(data.description ?? '')
       } catch {
@@ -186,6 +196,38 @@ export function MyTodoDetailPage() {
       toast.error('Failed to delete item')
       // Reload to restore
       if (id) getPersonalTodo(id).then(d => d && setItems(d.items))
+    }
+  }
+
+  // ── Links ─────────────────────────────────────────────────────────────────────
+
+  async function handleAddLink(e: FormEvent) {
+    e.preventDefault()
+    const url = newLinkUrl.trim()
+    if (!url || !todo) return
+    // Prepend https:// if no protocol given
+    const fullUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`
+    setAddingLink(true)
+    try {
+      const link = await createTodoLink(todo.id, fullUrl, newLinkLabel)
+      setLinks(prev => [...prev, link])
+      setNewLinkUrl('')
+      setNewLinkLabel('')
+      newLinkRef.current?.focus()
+    } catch {
+      toast.error('Failed to add link')
+    } finally {
+      setAddingLink(false)
+    }
+  }
+
+  async function handleDeleteLink(linkId: string) {
+    setLinks(prev => prev.filter(l => l.id !== linkId))
+    try {
+      await deleteTodoLink(linkId)
+    } catch {
+      toast.error('Failed to delete link')
+      if (id) getPersonalTodo(id).then(d => d && setLinks(d.links))
     }
   }
 
@@ -406,6 +448,66 @@ export function MyTodoDetailPage() {
 
       <Separator className="mb-6" />
 
+      {/* ── Links ── */}
+      <div className="mb-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Links
+          </h2>
+          {links.length > 0 && (
+            <span className="text-xs text-muted-foreground tabular-nums">{links.length}</span>
+          )}
+        </div>
+
+        {/* Saved links */}
+        {links.length > 0 && (
+          <div className="mb-3 space-y-1">
+            {links.map(link => (
+              <LinkRow key={link.id} link={link} onDelete={() => handleDeleteLink(link.id)} />
+            ))}
+          </div>
+        )}
+
+        {/* Add link form */}
+        <form onSubmit={handleAddLink} className="space-y-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Link2 className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={newLinkRef}
+                value={newLinkUrl}
+                onChange={e => setNewLinkUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setNewLinkUrl(''); setNewLinkLabel('') } }}
+                placeholder="Paste a URL…"
+                className="pl-8 text-sm"
+                disabled={addingLink}
+                type="url"
+              />
+            </div>
+            <Button type="submit" size="sm" variant="secondary" disabled={!newLinkUrl.trim() || addingLink}>
+              {addingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Add'}
+            </Button>
+          </div>
+          {newLinkUrl.trim() && (
+            <Input
+              value={newLinkLabel}
+              onChange={e => setNewLinkLabel(e.target.value)}
+              placeholder="Label (optional) — e.g. Q2 Figma file"
+              className="text-sm"
+              disabled={addingLink}
+            />
+          )}
+        </form>
+
+        {links.length === 0 && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Paste URLs for docs, tickets, or files related to this todo.
+          </p>
+        )}
+      </div>
+
+      <Separator className="mb-6" />
+
       {/* ── Footer metadata ── */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span>Created {formatDate(todo.created_at)}</span>
@@ -463,6 +565,62 @@ function ChecklistRow({
       <button
         onClick={onDelete}
         className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
+}
+
+// ─── Link row ─────────────────────────────────────────────────────────────────
+
+function LinkRow({ link, onDelete }: { link: PersonalTodoLink; onDelete: () => void }) {
+  // Extract a readable display name from the URL when no label is set
+  function getDisplayName() {
+    if (link.label) return link.label
+    try {
+      const u = new URL(link.url)
+      return u.hostname.replace(/^www\./, '')
+    } catch {
+      return link.url
+    }
+  }
+
+  return (
+    <div className="group flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 transition-colors hover:bg-muted/60">
+      {/* Favicon */}
+      <img
+        src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(link.url)}&sz=16`}
+        alt=""
+        className="h-4 w-4 shrink-0 rounded-sm"
+        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+      />
+
+      {/* Label + url */}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">{getDisplayName()}</p>
+        {link.label && (
+          <p className="truncate text-xs text-muted-foreground">{link.url}</p>
+        )}
+      </div>
+
+      {/* Open */}
+      <a
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={e => e.stopPropagation()}
+        className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+        title="Open link"
+      >
+        <ExternalLink className="h-3.5 w-3.5" />
+      </a>
+
+      {/* Delete */}
+      <button
+        onClick={onDelete}
+        className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+        title="Remove link"
       >
         <X className="h-3.5 w-3.5" />
       </button>

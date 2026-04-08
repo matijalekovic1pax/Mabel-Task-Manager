@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import type { PersonalTodo, PersonalTodoItem, PersonalTodoWithItems } from '@/lib/types'
+import type { PersonalTodo, PersonalTodoItem, PersonalTodoLink, PersonalTodoWithItems } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
 // Fetch all todos for the current user (newest first)
@@ -21,16 +21,22 @@ export async function getPersonalTodos(userId: string): Promise<PersonalTodo[]> 
 // ---------------------------------------------------------------------------
 
 export async function getPersonalTodo(id: string): Promise<PersonalTodoWithItems | null> {
-  const [{ data: todo, error: todoErr }, { data: items, error: itemsErr }] = await Promise.all([
+  const [
+    { data: todo,  error: todoErr  },
+    { data: items, error: itemsErr },
+    { data: links, error: linksErr },
+  ] = await Promise.all([
     supabase.from('personal_todos').select('*').eq('id', id).maybeSingle(),
     supabase.from('personal_todo_items').select('*').eq('todo_id', id).order('created_at', { ascending: true }),
+    supabase.from('personal_todo_links').select('*').eq('todo_id', id).order('created_at', { ascending: true }),
   ])
 
-  if (todoErr) throw todoErr
+  if (todoErr)  throw todoErr
   if (itemsErr) throw itemsErr
+  if (linksErr) throw linksErr
   if (!todo) return null
 
-  return { ...todo, items: items ?? [] }
+  return { ...todo, items: items ?? [], links: links ?? [] }
 }
 
 // ---------------------------------------------------------------------------
@@ -127,6 +133,34 @@ export async function updateTodoItem(
 export async function deleteTodoItem(id: string): Promise<void> {
   const { error } = await supabase
     .from('personal_todo_items')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// ---------------------------------------------------------------------------
+// Links
+// ---------------------------------------------------------------------------
+
+export async function createTodoLink(
+  todoId: string,
+  url: string,
+  label?: string,
+): Promise<PersonalTodoLink> {
+  const { data, error } = await supabase
+    .from('personal_todo_links')
+    .insert({ todo_id: todoId, url: url.trim(), label: label?.trim() || null })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteTodoLink(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('personal_todo_links')
     .delete()
     .eq('id', id)
 

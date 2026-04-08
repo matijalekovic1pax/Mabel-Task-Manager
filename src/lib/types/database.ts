@@ -487,6 +487,41 @@ export type Database = {
           },
         ]
       }
+      personal_todo_links: {
+        Row: {
+          id: string
+          todo_id: string
+          url: string
+          label: string | null
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          todo_id: string
+          url: string
+          label?: string | null
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          todo_id?: string
+          url?: string
+          label?: string | null
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'personal_todo_links_todo_id_fkey'
+            columns: ['todo_id']
+            isOneToOne: false
+            referencedRelation: 'personal_todos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -586,9 +621,14 @@ export type PersonalTodoInsert = Tables['personal_todos']['Insert']
 export type PersonalTodoUpdate = Tables['personal_todos']['Update']
 export type PersonalTodoItem = Tables['personal_todo_items']['Row']
 export type PersonalTodoItemInsert = Tables['personal_todo_items']['Insert']
+export type PersonalTodoLink = Tables['personal_todo_links']['Row']
+export type PersonalTodoLinkInsert = Tables['personal_todo_links']['Insert']
 
-/** A todo with its checklist items loaded */
-export type PersonalTodoWithItems = PersonalTodo & { items: PersonalTodoItem[] }
+/** A todo with its checklist items and links loaded */
+export type PersonalTodoWithItems = PersonalTodo & {
+  items: PersonalTodoItem[]
+  links: PersonalTodoLink[]
+}
 
 export type TaskAction =
   | 'request_info'

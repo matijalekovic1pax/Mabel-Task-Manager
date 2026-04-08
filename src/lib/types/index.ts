@@ -30,6 +30,8 @@ export type {
   PersonalTodoUpdate,
   PersonalTodoItem,
   PersonalTodoItemInsert,
+  PersonalTodoLink,
+  PersonalTodoLinkInsert,
   PersonalTodoWithItems,
 } from './database'
 

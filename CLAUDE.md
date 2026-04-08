@@ -18,7 +18,7 @@ There is no test framework configured in this project.
 **1PAX Task Manager** is a React 19 SPA backed by Supabase (PostgreSQL + Auth).
 
 - **Frontend:** React 19 + Vite + TypeScript, with React Router DOM for routing
-- **Server state:** TanStack React Query (fetching, caching, mutations)
+- **Server state:** Direct Supabase calls inside `useState`/`useEffect` hooks (TanStack React Query is installed but not used)
 - **Global state:** React Context (`src/contexts/auth-context.tsx`) for auth/user
 - **Backend:** Supabase (database, auth, realtime) — no custom server
 - **Deployment:** Vercel (`vercel.json` rewrites all routes to `/index.html`)
@@ -31,7 +31,7 @@ GENERAL:   anyone → creates (task_type='general') → assigns to multiple peop
 ```
 
 - Approval tasks use statuses: `pending`, `in_review`, `approved`, `rejected`, `needs_more_info`, `deferred`, `delegated`, `resolved`
-- General tasks use statuses: `todo`, `in_progress`, `done`, `cancelled`
+- General tasks use statuses: `todo`, `in_progress`, `in_review`, `blocked`, `done`, `cancelled`
 - General task status transitions go through the `update_general_task_status()` Supabase RPC
 - Multiple assignees per general task via the `task_assignees` join table
 

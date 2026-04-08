@@ -25,6 +25,9 @@ export type {
   TaskAssigneeInsert,
   TaskWithSubmitter,
   TaskWithDetails,
+  PersonalTodo,
+  PersonalTodoInsert,
+  PersonalTodoUpdate,
 } from './database'
 
 // ---------------------------------------------------------------------------

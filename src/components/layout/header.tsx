@@ -7,6 +7,7 @@ function getMobileTitle(pathname: string): string {
   if (pathname === '/') return 'Tasks'
   if (pathname === '/tasks/new') return 'New Task'
   if (pathname.startsWith('/tasks/')) return 'Task Detail'
+  if (pathname === '/my-todos') return 'My Todos'
   if (pathname === '/activity') return 'Activity'
   if (pathname === '/settings') return 'Settings'
   if (pathname === '/admin') return 'Admin'

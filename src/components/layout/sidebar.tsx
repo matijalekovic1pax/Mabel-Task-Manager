@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { hasAdminPanelAccess } from '@/lib/utils/roles'
 import {
   ListTodo, PlusCircle, Activity,
-  Settings, Shield, LogOut,
+  Settings, Shield, LogOut, CheckSquare,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 
 const navItems = [
   { to: '/', label: 'Tasks', icon: ListTodo, end: true },
+  { to: '/my-todos', label: 'My Todos', icon: CheckSquare },
   { to: '/tasks/new', label: 'New Task', icon: PlusCircle },
   { to: '/activity', label: 'Activity', icon: Activity },
   { to: '/settings', label: 'Settings', icon: Settings },

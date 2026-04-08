@@ -405,6 +405,53 @@ export type Database = {
           },
         ]
       }
+      personal_todos: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          notes: string | null
+          status: 'todo' | 'in_progress' | 'done'
+          priority: 'urgent' | 'high' | 'normal' | 'low'
+          due_date: string | null
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          notes?: string | null
+          status?: 'todo' | 'in_progress' | 'done'
+          priority?: 'urgent' | 'high' | 'normal' | 'low'
+          due_date?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          notes?: string | null
+          status?: 'todo' | 'in_progress' | 'done'
+          priority?: 'urgent' | 'high' | 'normal' | 'low'
+          due_date?: string | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'personal_todos_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -498,6 +545,10 @@ export type TaskEventInsert = Tables['task_events']['Insert']
 export type NotificationInsert = Tables['notifications']['Insert']
 export type AllowedEmailInsert = Tables['allowed_emails']['Insert']
 export type TaskAssigneeInsert = Tables['task_assignees']['Insert']
+
+export type PersonalTodo = Tables['personal_todos']['Row']
+export type PersonalTodoInsert = Tables['personal_todos']['Insert']
+export type PersonalTodoUpdate = Tables['personal_todos']['Update']
 
 export type TaskAction =
   | 'request_info'

@@ -235,12 +235,16 @@ export async function delegateTask(
 // ---------------------------------------------------------------------------
 
 export async function deleteTask(taskId: string) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('tasks')
     .delete()
     .eq('id', taskId)
+    .select('id')
 
   if (error) throw error
+  if (!data || data.length === 0) {
+    throw new Error('Delete failed — you may not have permission to delete this task.')
+  }
 }
 
 // ---------------------------------------------------------------------------

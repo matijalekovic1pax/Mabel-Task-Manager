@@ -410,7 +410,7 @@ export type Database = {
           id: string
           user_id: string
           title: string
-          notes: string | null
+          description: string | null
           status: 'todo' | 'in_progress' | 'done'
           priority: 'urgent' | 'high' | 'normal' | 'low'
           due_date: string | null
@@ -422,7 +422,7 @@ export type Database = {
           id?: string
           user_id: string
           title: string
-          notes?: string | null
+          description?: string | null
           status?: 'todo' | 'in_progress' | 'done'
           priority?: 'urgent' | 'high' | 'normal' | 'low'
           due_date?: string | null
@@ -434,7 +434,7 @@ export type Database = {
           id?: string
           user_id?: string
           title?: string
-          notes?: string | null
+          description?: string | null
           status?: 'todo' | 'in_progress' | 'done'
           priority?: 'urgent' | 'high' | 'normal' | 'low'
           due_date?: string | null
@@ -448,6 +448,41 @@ export type Database = {
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      personal_todo_items: {
+        Row: {
+          id: string
+          todo_id: string
+          text: string
+          is_done: boolean
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          todo_id: string
+          text: string
+          is_done?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          todo_id?: string
+          text?: string
+          is_done?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'personal_todo_items_todo_id_fkey'
+            columns: ['todo_id']
+            isOneToOne: false
+            referencedRelation: 'personal_todos'
             referencedColumns: ['id']
           },
         ]
@@ -549,6 +584,11 @@ export type TaskAssigneeInsert = Tables['task_assignees']['Insert']
 export type PersonalTodo = Tables['personal_todos']['Row']
 export type PersonalTodoInsert = Tables['personal_todos']['Insert']
 export type PersonalTodoUpdate = Tables['personal_todos']['Update']
+export type PersonalTodoItem = Tables['personal_todo_items']['Row']
+export type PersonalTodoItemInsert = Tables['personal_todo_items']['Insert']
+
+/** A todo with its checklist items loaded */
+export type PersonalTodoWithItems = PersonalTodo & { items: PersonalTodoItem[] }
 
 export type TaskAction =
   | 'request_info'

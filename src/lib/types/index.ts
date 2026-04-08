@@ -28,6 +28,9 @@ export type {
   PersonalTodo,
   PersonalTodoInsert,
   PersonalTodoUpdate,
+  PersonalTodoItem,
+  PersonalTodoItemInsert,
+  PersonalTodoWithItems,
 } from './database'
 
 // ---------------------------------------------------------------------------

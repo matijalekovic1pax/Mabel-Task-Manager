@@ -12,7 +12,8 @@ const AuthCallbackPage = lazy(() => import('@/pages/auth-callback').then((m) => 
 const TasksPage       = lazy(() => import('@/pages/tasks').then((m) => ({ default: m.TasksPage })))
 const NewTaskPage     = lazy(() => import('@/pages/new-task').then((m) => ({ default: m.NewTaskPage })))
 const TaskDetailPage  = lazy(() => import('@/pages/task-detail').then((m) => ({ default: m.TaskDetailPage })))
-const MyTodosPage     = lazy(() => import('@/pages/my-todos').then((m) => ({ default: m.MyTodosPage })))
+const MyTodosPage       = lazy(() => import('@/pages/my-todos').then((m) => ({ default: m.MyTodosPage })))
+const MyTodoDetailPage  = lazy(() => import('@/pages/my-todo-detail').then((m) => ({ default: m.MyTodoDetailPage })))
 const ActivityPage    = lazy(() => import('@/pages/activity').then((m) => ({ default: m.ActivityPage })))
 const SettingsPage    = lazy(() => import('@/pages/settings').then((m) => ({ default: m.SettingsPage })))
 const AdminPage       = lazy(() => import('@/pages/admin').then((m) => ({ default: m.AdminPage })))
@@ -47,7 +48,8 @@ export default function App() {
               <Route path="tasks/:id"    element={<TaskDetailPage />} />
               <Route path="tasks"         element={<Navigate to="/" replace />} />
               <Route path="my-tasks"     element={<Navigate to="/" replace />} />
-              <Route path="my-todos"     element={<MyTodosPage />} />
+              <Route path="my-todos"        element={<MyTodosPage />} />
+              <Route path="my-todos/:id"   element={<MyTodoDetailPage />} />
               <Route path="activity"     element={<ActivityPage />} />
               <Route path="settings"     element={<SettingsPage />} />
               <Route path="settings/team" element={<Navigate to="/admin" replace />} />

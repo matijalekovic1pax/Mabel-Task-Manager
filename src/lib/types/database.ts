@@ -648,14 +648,16 @@ export type TaskAction =
   | 'mark_ready'
   | 'provide_info'
 
-/** Named transitions for the general-task workflow (see migration 013). */
+/** Named transitions for the general-task workflow (migrations 013, 014). */
 export type GeneralTaskAction =
   | 'start'
   | 'send_for_review'
   | 'approve_close'
+  | 'complete'
   | 'send_back'
   | 'block'
   | 'resume'
+  | 'reopen'
   | 'cancel'
 
 /** Task with the submitter's profile joined. */

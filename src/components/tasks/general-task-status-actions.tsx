@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, MoreHorizontal, PlayCircle, Send, CheckCircle2, XCircle, Ban, RotateCw, Undo2 } from 'lucide-react'
+import { Loader2, MoreHorizontal, PlayCircle, Send, CheckCircle2, XCircle, Ban, RotateCw, Undo2, RefreshCw } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -38,25 +38,30 @@ type ActionMeta = {
 
 const ACTION_META: Record<GeneralTaskAction, ActionMeta> = {
   start:           { label: 'Start Task',         icon: PlayCircle,   tone: 'primary', requiresNote: false },
+  complete:        { label: 'Mark Complete',      icon: CheckCircle2, tone: 'success', requiresNote: false },
   send_for_review: { label: 'Send for Review',    icon: Send,         tone: 'primary', requiresNote: false },
   approve_close:   { label: 'Approve & Close',    icon: CheckCircle2, tone: 'success', requiresNote: false },
   resume:          { label: 'Resume',             icon: RotateCw,     tone: 'primary', requiresNote: false },
+  reopen:          { label: 'Reopen',             icon: RefreshCw,    tone: 'warning', requiresNote: true,  notePrompt: 'Why are you reopening this task?' },
   send_back:       { label: 'Send Back',          icon: Undo2,        tone: 'warning', requiresNote: true,  notePrompt: 'What needs to change?' },
   block:           { label: 'Mark Blocked',       icon: Ban,          tone: 'warning', requiresNote: true,  notePrompt: 'What is blocking this task?' },
   cancel:          { label: 'Cancel Task',        icon: XCircle,      tone: 'danger',  requiresNote: true,  notePrompt: 'Why is this task being cancelled?' },
 }
 
 // Per-status visible actions, in order. First entry is the primary button.
+// For in_progress we make the "just finish it" path the primary action;
+// send_for_review is available when the creator actually wants to review.
 const ACTIONS_BY_STATUS: Record<string, GeneralTaskAction[]> = {
   todo:        ['start', 'cancel'],
-  in_progress: ['send_for_review', 'block', 'cancel'],
+  in_progress: ['complete', 'send_for_review', 'block', 'cancel'],
   blocked:     ['resume', 'cancel'],
   in_review:   ['approve_close', 'send_back', 'cancel'],
+  done:        ['reopen'],
 }
 
 // Who is allowed to perform each action (admin always allowed).
-const ASSIGNEE_ACTIONS = new Set<GeneralTaskAction>(['start', 'send_for_review', 'block', 'resume'])
-const CREATOR_ACTIONS  = new Set<GeneralTaskAction>(['approve_close', 'send_back', 'cancel'])
+const ASSIGNEE_ACTIONS = new Set<GeneralTaskAction>(['start', 'send_for_review', 'complete', 'block', 'resume'])
+const CREATOR_ACTIONS  = new Set<GeneralTaskAction>(['approve_close', 'send_back', 'reopen', 'cancel'])
 
 // Short descriptor of what the current status means / who's expected to act.
 const STATUS_DESCRIPTION: Record<string, string> = {
@@ -64,6 +69,7 @@ const STATUS_DESCRIPTION: Record<string, string> = {
   in_progress: 'Work is underway.',
   blocked:     'Stuck — needs attention to unblock.',
   in_review:   'Submitted to the creator for review.',
+  done:        'Task is complete. Creator can reopen if changes are needed.',
 }
 
 type Props = {
@@ -80,14 +86,13 @@ export function GeneralTaskStatusActions({ task, isCreator, isAssignee, isAdmin,
   const [noteValue, setNoteValue] = useState('')
 
   const status = task.status as TaskStatus
-  const isFinal = status === 'done' || status === 'cancelled'
 
-  if (isFinal) {
+  if (status === 'cancelled') {
     return (
       <Card className="border-dashed">
         <CardContent className="py-6">
           <p className="text-sm text-muted-foreground">
-            This task is {status === 'done' ? 'closed' : 'cancelled'}. No further actions are available.
+            This task was cancelled. No further actions are available.
           </p>
         </CardContent>
       </Card>
@@ -137,6 +142,9 @@ export function GeneralTaskStatusActions({ task, isCreator, isAssignee, isAdmin,
   const noActions = available.length === 0
   const waitingMessage = (() => {
     if (!noActions) return null
+    if (status === 'done') {
+      return 'Task is complete. Only the creator can reopen it.'
+    }
     if (status === 'in_review' && isAssignee && !isCreator) {
       return 'Waiting for the creator to review your submission.'
     }

@@ -55,10 +55,10 @@ type PrimaryActionSpec = {
 }
 
 const PRIMARY_ROW_ACTION: Partial<Record<string, PrimaryActionSpec>> = {
-  todo:        { action: 'start',           label: 'Start',           role: 'assignee', className: 'border-orange-300 text-orange-700 hover:bg-orange-50' },
-  in_progress: { action: 'send_for_review', label: 'Send for Review', role: 'assignee', className: 'border-blue-300 text-blue-700 hover:bg-blue-50' },
-  blocked:     { action: 'resume',          label: 'Resume',          role: 'assignee', className: 'border-orange-300 text-orange-700 hover:bg-orange-50' },
-  in_review:   { action: 'approve_close',   label: 'Approve & Close', role: 'creator',  className: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
+  todo:        { action: 'start',         label: 'Start',           role: 'assignee', className: 'border-orange-300 text-orange-700 hover:bg-orange-50' },
+  in_progress: { action: 'complete',      label: 'Mark Complete',   role: 'assignee', className: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
+  blocked:     { action: 'resume',        label: 'Resume',          role: 'assignee', className: 'border-orange-300 text-orange-700 hover:bg-orange-50' },
+  in_review:   { action: 'approve_close', label: 'Approve & Close', role: 'creator',  className: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
 }
 
 const PRIORITY_STRIPE: Record<string, string> = {

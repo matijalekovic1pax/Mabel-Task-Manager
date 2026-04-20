@@ -45,9 +45,11 @@ const ACTION_LABELS: Record<string, string> = {
   start: 'Started',
   send_for_review: 'Sent for Review',
   approve_close: 'Approved & Closed',
+  complete: 'Marked Complete',
   send_back: 'Sent Back for Rework',
   block: 'Marked Blocked',
   resume: 'Resumed',
+  reopen: 'Reopened',
   cancel: 'Cancelled',
   // Legacy rows written before migration 013
   status_update: 'Status Updated',

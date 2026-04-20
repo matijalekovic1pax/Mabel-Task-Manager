@@ -36,6 +36,17 @@ export async function uploadTaskPhoto(
   }
 
   const blob = await compressImage(file)
+  return uploadCompressedBlob(taskId, userId, blob, file.name)
+}
+
+// Upload an already-compressed blob. Used when photos were staged client-side
+// (e.g. on the new-task form) and compression happened at selection time.
+export async function uploadCompressedBlob(
+  taskId: string,
+  userId: string,
+  blob: Blob,
+  fileName: string,
+): Promise<TaskAttachment> {
   const path = `${taskId}/${crypto.randomUUID()}.jpg`
 
   const { error: uploadError } = await supabase.storage
@@ -48,7 +59,7 @@ export async function uploadTaskPhoto(
     .insert({
       task_id: taskId,
       uploaded_by: userId,
-      file_name: file.name,
+      file_name: fileName,
       file_size: blob.size,
       file_type: 'image/jpeg',
       storage_path: path,
@@ -57,7 +68,6 @@ export async function uploadTaskPhoto(
     .single()
 
   if (insertError) {
-    // best-effort cleanup so we don't leave an orphan object
     await supabase.storage.from(BUCKET).remove([path])
     throw insertError
   }

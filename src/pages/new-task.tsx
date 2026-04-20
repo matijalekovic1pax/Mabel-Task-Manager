@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { CATEGORY_CONFIG, PRIORITY_CONFIG } from '@/lib/utils/constants'
 import { TaskAssigneesPicker } from '@/components/tasks/task-assignees-picker'
+import { PhotoDraftPicker, type PhotoDraft } from '@/components/tasks/photo-draft-picker'
+import { uploadCompressedBlob } from '@/lib/services/attachments'
 import { Loader2, ClipboardList, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -27,6 +29,17 @@ export function NewTaskPage() {
   const [error, setError] = useState<string | null>(null)
   const [teamMembers, setTeamMembers] = useState<Profile[]>([])
   const [assigneeIds, setAssigneeIds] = useState<string[]>([])
+  const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([])
+
+  async function uploadDrafts(taskId: string, userId: string) {
+    for (const d of photoDrafts) {
+      try {
+        await uploadCompressedBlob(taskId, userId, d.blob, d.fileName)
+      } catch (err) {
+        toast.error(err instanceof Error ? `Photo upload: ${err.message}` : `Failed to upload ${d.fileName}`)
+      }
+    }
+  }
 
   useEffect(() => {
     getActiveTeamMembers()
@@ -57,7 +70,8 @@ export function NewTaskPage() {
     setLoading(true)
     setError(null)
     try {
-      await createTask(validated.data, profile.id)
+      const task = await createTask(validated.data, profile.id)
+      if (photoDrafts.length > 0) await uploadDrafts(task.id, profile.id)
       toast.success('Approval request submitted')
       navigate('/tasks')
     } catch (err) {
@@ -89,7 +103,8 @@ export function NewTaskPage() {
     setLoading(true)
     setError(null)
     try {
-      await createGeneralTask(validated.data, profile.id)
+      const task = await createGeneralTask(validated.data, profile.id)
+      if (photoDrafts.length > 0) await uploadDrafts(task.id, profile.id)
       toast.success('Task created and assignees notified')
       navigate('/my-tasks')
     } catch (err) {
@@ -212,6 +227,10 @@ export function NewTaskPage() {
                 <Label htmlFor="ap-deadline">Deadline (optional)</Label>
                 <Input id="ap-deadline" name="deadline" type="datetime-local" />
               </div>
+              <div className="space-y-2">
+                <Label>Photos (optional)</Label>
+                <PhotoDraftPicker drafts={photoDrafts} onChange={setPhotoDrafts} disabled={loading} />
+              </div>
               <Button type="submit" disabled={loading} className="w-full bg-foreground text-background hover:bg-foreground/90 sm:w-auto">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Submit for Approval
@@ -270,6 +289,10 @@ export function NewTaskPage() {
               <div className="space-y-2">
                 <Label htmlFor="gt-deadline">Deadline (optional)</Label>
                 <Input id="gt-deadline" name="deadline" type="datetime-local" />
+              </div>
+              <div className="space-y-2">
+                <Label>Photos (optional)</Label>
+                <PhotoDraftPicker drafts={photoDrafts} onChange={setPhotoDrafts} disabled={loading} />
               </div>
               <Button type="submit" disabled={loading} className="w-full bg-foreground text-background hover:bg-foreground/90 sm:w-auto">
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

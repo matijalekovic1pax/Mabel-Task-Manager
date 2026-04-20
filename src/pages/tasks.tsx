@@ -7,7 +7,7 @@ import {
   getMyAssignedTasks,
   getMyAssignedGeneralTasks,
   getCompanyTasks,
-  updateGeneralTaskStatus,
+  transitionGeneralTask,
 } from '@/lib/services/tasks'
 import { TaskStatusBadge } from '@/components/tasks/task-status-badge'
 import { TaskPriorityBadge } from '@/components/tasks/task-priority-badge'
@@ -33,7 +33,7 @@ import { getErrorMessage, isSessionExpiredError } from '@/lib/supabase/errors'
 import { createRequestGuard, withTimeout } from '@/lib/utils/async'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import type { TaskWithSubmitter, GeneralTaskStatus } from '@/lib/types'
+import type { TaskWithSubmitter, GeneralTaskAction } from '@/lib/types'
 
 // ─────────────────────────────────────────────
 // Constants
@@ -44,22 +44,21 @@ const REFRESH_DEBOUNCE_MS = 300
 const FALLBACK_POLL_MS = 15000
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 }
 
-const STATUS_TRANSITIONS: Record<GeneralTaskStatus, GeneralTaskStatus[]> = {
-  todo:        ['in_progress', 'cancelled'],
-  in_progress: ['in_review', 'blocked', 'done', 'cancelled'],
-  blocked:     ['in_progress', 'cancelled'],
-  in_review:   ['done', 'in_progress', 'cancelled'],
-  done:        [],
-  cancelled:   [],
+// The list row only surfaces the single obvious forward action per status.
+// Note-required actions (block, send_back, cancel) live in the detail view.
+type PrimaryActionSpec = {
+  action: GeneralTaskAction
+  label: string
+  /** Who may perform it: 'assignee' | 'creator'. Admin bypasses this. */
+  role: 'assignee' | 'creator'
+  className: string
 }
 
-const STATUS_ACTION_LABELS: Partial<Record<GeneralTaskStatus, string>> = {
-  in_progress: 'Start',
-  in_review:   'Send for Review',
-  blocked:     'Mark Blocked',
-  done:        'Mark Done',
-  todo:        'Reopen',
-  cancelled:   'Cancel',
+const PRIMARY_ROW_ACTION: Partial<Record<string, PrimaryActionSpec>> = {
+  todo:        { action: 'start',           label: 'Start',           role: 'assignee', className: 'border-orange-300 text-orange-700 hover:bg-orange-50' },
+  in_progress: { action: 'send_for_review', label: 'Send for Review', role: 'assignee', className: 'border-blue-300 text-blue-700 hover:bg-blue-50' },
+  blocked:     { action: 'resume',          label: 'Resume',          role: 'assignee', className: 'border-orange-300 text-orange-700 hover:bg-orange-50' },
+  in_review:   { action: 'approve_close',   label: 'Approve & Close', role: 'creator',  className: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
 }
 
 const PRIORITY_STRIPE: Record<string, string> = {
@@ -81,24 +80,37 @@ function dedupe(tasks: TaskWithSubmitter[]): TaskWithSubmitter[] {
 
 function TaskRow({
   task,
-  onStatusChange,
+  currentUserId,
+  isAdmin,
+  onTransition,
 }: {
   task: TaskWithSubmitter
-  onStatusChange: (id: string, status: GeneralTaskStatus) => Promise<void>
+  currentUserId: string | undefined
+  isAdmin: boolean
+  onTransition: (id: string, action: GeneralTaskAction) => Promise<void>
 }) {
   const [updating, setUpdating] = useState(false)
   const isGeneral = task.task_type === 'general'
-  const currentStatus = task.status as GeneralTaskStatus
-  const nextStatuses = isGeneral ? (STATUS_TRANSITIONS[currentStatus] ?? []) : []
   const overdue = task.deadline
     ? isOverdue(task.deadline) && !FINAL_STATUSES.includes(task.status)
     : false
   const isUrgentActive = task.priority === 'urgent' && !FINAL_STATUSES.includes(task.status)
   const isFinal = FINAL_STATUSES.includes(task.status)
 
-  async function handleTransition(status: GeneralTaskStatus) {
+  const isCreator = isGeneral && !!currentUserId && task.submitted_by === currentUserId
+  const primary = isGeneral ? PRIMARY_ROW_ACTION[task.status] : undefined
+  const canShowPrimary = !!primary && (
+    isAdmin
+    // Show to creators for creator-role actions; for assignee actions we
+    // optimistically show (server enforces, and the user wouldn't see the row
+    // unless they're relevant to the task).
+    || (primary.role === 'creator' ? isCreator : !isCreator || isAdmin)
+  )
+
+  async function handleClick() {
+    if (!primary) return
     setUpdating(true)
-    try { await onStatusChange(task.id, status) }
+    try { await onTransition(task.id, primary.action) }
     finally { setUpdating(false) }
   }
 
@@ -158,30 +170,21 @@ function TaskRow({
             {formatDeadline(task.deadline)}
           </span>
         )}
-        {/* Action buttons — hidden on mobile (tap row to open detail) */}
-        {isGeneral && nextStatuses.length > 0 && (
-          <div className="hidden sm:flex flex-wrap gap-1 justify-end">
-            {nextStatuses.map(s => (
-              <Button
-                key={s}
-                size="sm"
-                variant="outline"
-                disabled={updating}
-                onClick={e => { e.preventDefault(); e.stopPropagation(); void handleTransition(s) }}
-                className={cn(
-                  'h-6 px-2 text-xs',
-                  s === 'done'        && 'border-emerald-300 text-emerald-700 hover:bg-emerald-50',
-                  s === 'cancelled'   && 'border-red-300 text-red-600 hover:bg-red-50',
-                  s === 'in_progress' && 'border-orange-300 text-orange-700 hover:bg-orange-50',
-                  s === 'in_review'   && 'border-blue-300 text-blue-700 hover:bg-blue-50',
-                  s === 'blocked'     && 'border-rose-300 text-rose-700 hover:bg-rose-50',
-                  s === 'todo'        && 'border-border text-muted-foreground hover:bg-muted',
-                )}
-              >
-                {updating && <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />}
-                {STATUS_ACTION_LABELS[s] ?? s}
-              </Button>
-            ))}
+        {/* Primary action — hidden on mobile (tap row to open detail). Only
+            the single obvious forward step; notes-required and destructive
+            actions live in the task detail page. */}
+        {isGeneral && primary && canShowPrimary && (
+          <div className="hidden sm:flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={updating}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); void handleClick() }}
+              className={cn('h-6 px-2 text-xs', primary.className)}
+            >
+              {updating && <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />}
+              {primary.label}
+            </Button>
           </div>
         )}
       </div>
@@ -310,13 +313,12 @@ export function TasksPage() {
     }
   }, [profile, scheduleRefresh])
 
-  async function handleGeneralStatusChange(taskId: string, status: GeneralTaskStatus) {
+  async function handleGeneralTransition(taskId: string, action: GeneralTaskAction) {
     try {
-      await updateGeneralTaskStatus(taskId, status)
-      toast.success(`Task moved to ${status.replace('_', ' ')}`)
+      await transitionGeneralTask(taskId, action)
       void refresh({ background: true })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update status')
+      toast.error(err instanceof Error ? err.message : 'Failed to update task')
     }
   }
 
@@ -663,7 +665,9 @@ export function TasksPage() {
             <TaskRow
               key={task.id}
               task={task}
-              onStatusChange={handleGeneralStatusChange}
+              currentUserId={profile?.id}
+              isAdmin={isSuperAdmin}
+              onTransition={handleGeneralTransition}
             />
           ))}
         </div>
@@ -689,7 +693,9 @@ export function TasksPage() {
                 <TaskRow
                   key={task.id}
                   task={task}
-                  onStatusChange={handleGeneralStatusChange}
+                  currentUserId={profile?.id}
+                  isAdmin={isSuperAdmin}
+                  onTransition={handleGeneralTransition}
                 />
               ))}
             </div>

@@ -544,6 +544,14 @@ export type Database = {
         }
         Returns: Database['public']['Tables']['tasks']['Row']
       }
+      transition_general_task: {
+        Args: {
+          p_task_id: string
+          p_action: string
+          p_note?: string | null
+        }
+        Returns: Database['public']['Tables']['tasks']['Row']
+      }
     }
     Enums: {
       task_category:
@@ -639,6 +647,16 @@ export type TaskAction =
   | 'resolve'
   | 'mark_ready'
   | 'provide_info'
+
+/** Named transitions for the general-task workflow (see migration 013). */
+export type GeneralTaskAction =
+  | 'start'
+  | 'send_for_review'
+  | 'approve_close'
+  | 'send_back'
+  | 'block'
+  | 'resume'
+  | 'cancel'
 
 /** Task with the submitter's profile joined. */
 export type TaskWithSubmitter = Task & {

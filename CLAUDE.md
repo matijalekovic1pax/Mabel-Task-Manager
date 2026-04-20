@@ -23,17 +23,19 @@ There is no test framework configured in this project.
 - **Backend:** Supabase (database, auth, realtime) — no custom server
 - **Deployment:** Vercel (`vercel.json` rewrites all routes to `/index.html`)
 
-### Two parallel task workflows
+### Three task workflows
 
 ```
-APPROVAL:  team_member → submits → CEO Queue → CEO approves/rejects/delegates/etc.
-GENERAL:   anyone → creates (task_type='general') → assigns to multiple people → assignees manage status
+APPROVAL:       team_member → submits → CEO Queue → CEO approves/rejects/delegates/etc.
+GENERAL:        anyone → creates (task_type='general') → assigns to multiple people → assignees manage status
+PERSONAL TODOS: user → creates private todo for themselves (not visible to others)
 ```
 
 - Approval tasks use statuses: `pending`, `in_review`, `approved`, `rejected`, `needs_more_info`, `deferred`, `delegated`, `resolved`
 - General tasks use statuses: `todo`, `in_progress`, `in_review`, `blocked`, `done`, `cancelled`
 - General task status transitions go through the `update_general_task_status()` Supabase RPC
 - Multiple assignees per general task via the `task_assignees` join table
+- Personal todos live in their own table (migration 008) with enhancements in 010–011 (links to tasks). Service: `src/lib/services/personal-todos.ts`. Separate from the `tasks` table — don't conflate the two.
 
 ### Routes
 
@@ -44,10 +46,13 @@ Defined in `src/App.tsx`. All authenticated routes nest under `AppLayout` via `P
 | `/` | `TasksPage` | Unified tasks view (approval queue + general kanban) |
 | `/tasks/new` | `NewTaskPage` | |
 | `/tasks/:id` | `TaskDetailPage` | |
+| `/my-todos` | `MyTodosPage` | Private per-user todos |
+| `/my-todos/:id` | `MyTodoDetailPage` | |
 | `/activity` | `ActivityPage` | |
 | `/settings` | `SettingsPage` | |
 | `/admin` | `AdminPage` | `super_admin` only |
-| `/my-tasks` | → `/` redirect | |
+| `/my-tasks`, `/tasks` | → `/` redirect | |
+| `/settings/team` | → `/admin` redirect | |
 
 ### Key directories
 

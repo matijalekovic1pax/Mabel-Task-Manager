@@ -13,6 +13,7 @@ export type {
   TaskPriority,
   TaskStatus,
   TaskAction,
+  GeneralTaskAction,
   NotificationType,
   GeneralTaskStatus,
   ProfileInsert,

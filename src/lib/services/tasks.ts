@@ -8,7 +8,7 @@ import type {
   TaskStatus,
   TaskCategory,
   TaskPriority,
-  GeneralTaskStatus,
+  GeneralTaskAction,
 } from '@/lib/types'
 import type { TaskInput, ResolutionInput, DelegationInput, GeneralTaskInput } from '@/lib/validations/task'
 
@@ -380,15 +380,19 @@ export async function getCompanyTasks(filters?: TaskFilters): Promise<TaskWithSu
   return (data ?? []) as unknown as TaskWithSubmitter[]
 }
 
-/** Update the status of a general task via the server-enforced RPC. */
-export async function updateGeneralTaskStatus(
+/**
+ * Transition a general task via a named action (server-enforced workflow).
+ * The RPC maps each action to its target status, role-gates the caller
+ * (assignee vs creator/admin), and requires notes for block/send_back/cancel.
+ */
+export async function transitionGeneralTask(
   taskId: string,
-  status: GeneralTaskStatus,
+  action: GeneralTaskAction,
   note?: string | null,
 ): Promise<Task> {
-  const { data, error } = await supabase.rpc('update_general_task_status', {
+  const { data, error } = await supabase.rpc('transition_general_task', {
     p_task_id: taskId,
-    p_status: status,
+    p_action: action,
     p_note: note ?? null,
   })
 

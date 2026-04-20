@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
-import { getTask, transitionTask, deleteTask, updateGeneralTaskStatus, addTaskAssignee, removeTaskAssignee } from '@/lib/services/tasks'
+import { getTask, transitionTask, deleteTask, addTaskAssignee, removeTaskAssignee } from '@/lib/services/tasks'
 import { getActiveTeamMembers } from '@/lib/services/team'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,15 +22,17 @@ import { TaskCategoryIcon } from '@/components/tasks/task-category-icon'
 import { TaskResolutionForm } from '@/components/tasks/task-resolution-form'
 import { TaskDelegationForm } from '@/components/tasks/task-delegation-form'
 import { TaskComments } from '@/components/tasks/task-comments'
+import { GeneralTaskStatusActions } from '@/components/tasks/general-task-status-actions'
 import { formatDateTime, formatDeadline, formatRelativeTime, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
-import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History, Trash2, ChevronDown, Users, PlayCircle, CheckCircle2, XCircle, UserPlus } from 'lucide-react'
+import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History, Trash2, ChevronDown, Users, UserPlus } from 'lucide-react'
 import { hasAdminAccess, isCeo, isSuperAdmin } from '@/lib/utils/roles'
 import { toast } from 'sonner'
-import type { TaskWithDetails, Profile, GeneralTaskStatus } from '@/lib/types'
+import type { TaskWithDetails, Profile } from '@/lib/types'
 import { TaskAssigneesPicker } from '@/components/tasks/task-assignees-picker'
 
 const ACTION_LABELS: Record<string, string> = {
+  // Approval workflow
   request_info: 'Requested More Info',
   delegate: 'Delegated',
   approve: 'Approved',
@@ -39,6 +41,16 @@ const ACTION_LABELS: Record<string, string> = {
   resolve: 'Resolved',
   mark_ready: 'Marked Ready',
   provide_info: 'Provided Info',
+  // General workflow
+  start: 'Started',
+  send_for_review: 'Sent for Review',
+  approve_close: 'Approved & Closed',
+  send_back: 'Sent Back for Rework',
+  block: 'Marked Blocked',
+  resume: 'Resumed',
+  cancel: 'Cancelled',
+  // Legacy rows written before migration 013
+  status_update: 'Status Updated',
 }
 
 function getNextActionOwner(task: TaskWithDetails): string {
@@ -65,7 +77,6 @@ export function TaskDetailPage() {
   const [markingReady, setMarkingReady] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [updatingStatus, setUpdatingStatus] = useState(false)
   const [showAssigneePicker, setShowAssigneePicker] = useState(false)
   const [pendingAssignees, setPendingAssignees] = useState<string[]>([])
   const [addingAssignee, setAddingAssignee] = useState(false)
@@ -140,20 +151,6 @@ export function TaskDetailPage() {
     }
   }
 
-  async function handleGeneralStatusUpdate(status: GeneralTaskStatus) {
-    if (!task) return
-    setUpdatingStatus(true)
-    try {
-      await updateGeneralTaskStatus(task.id, status)
-      toast.success(`Task moved to ${status.replace('_', ' ')}`)
-      await refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update status')
-    } finally {
-      setUpdatingStatus(false)
-    }
-  }
-
   async function handleAddAssignees() {
     if (!task || !profile || pendingAssignees.length === 0) return
     setAddingAssignee(true)
@@ -214,10 +211,10 @@ export function TaskDetailPage() {
   const canDelegate = canRunAdminActions && task.status !== 'delegated'
   const canMarkReady = isApprovalTask && !isAdmin && task.status === 'delegated' && task.assigned_to === profile?.id
 
-  // General task permissions
+  // General task permissions (fine-grained action gating lives in the actions card)
   const isGeneralCreator = isGeneralTask && profile?.id === task.submitted_by
   const isGeneralAssignee = isGeneralTask && (task.assignees ?? []).some((a) => a.assignee_id === profile?.id)
-  const canUpdateGeneralStatus = isGeneralTask && !isFinal && (isGeneralCreator || isGeneralAssignee || isAdmin)
+  const hasGeneralAccess = isGeneralTask && (isGeneralCreator || isGeneralAssignee || isAdmin)
   const canManageAssignees = isGeneralTask && (isGeneralCreator || isAdmin)
 
   const overdue = task.deadline ? isOverdue(task.deadline) && !isFinal : false
@@ -466,70 +463,14 @@ export function TaskDetailPage() {
       )}
 
       {/* General task: status actions */}
-      {canUpdateGeneralStatus && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Update Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {task.status === 'todo' && (<>
-                <Button variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('in_progress')}>
-                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <PlayCircle className="mr-2 h-4 w-4" />Start Task
-                </Button>
-              </>)}
-
-              {task.status === 'in_progress' && (<>
-                <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('in_review')}>
-                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Send for Review
-                </Button>
-                <Button variant="outline" className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('blocked')}>
-                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Mark Blocked
-                </Button>
-                <Button className="bg-emerald-600 hover:bg-emerald-700"
-                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('done')}>
-                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <CheckCircle2 className="mr-2 h-4 w-4" />Mark Done
-                </Button>
-              </>)}
-
-              {task.status === 'blocked' && (<>
-                <Button variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('in_progress')}>
-                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <PlayCircle className="mr-2 h-4 w-4" />Resume
-                </Button>
-              </>)}
-
-              {task.status === 'in_review' && (<>
-                <Button className="bg-emerald-600 hover:bg-emerald-700"
-                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('done')}>
-                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <CheckCircle2 className="mr-2 h-4 w-4" />Approve & Close
-                </Button>
-                <Button variant="outline"
-                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('in_progress')}>
-                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Send Back
-                </Button>
-              </>)}
-
-              {!['done', 'cancelled'].includes(task.status) && (isGeneralCreator || isAdmin) && (
-                <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50"
-                  disabled={updatingStatus} onClick={() => handleGeneralStatusUpdate('cancelled')}>
-                  {updatingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <XCircle className="mr-2 h-4 w-4" />Cancel Task
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {hasGeneralAccess && (
+        <GeneralTaskStatusActions
+          task={task}
+          isCreator={!!isGeneralCreator}
+          isAssignee={!!isGeneralAssignee}
+          isAdmin={isAdmin}
+          onTransitioned={refresh}
+        />
       )}
 
       <div ref={actionRef}>

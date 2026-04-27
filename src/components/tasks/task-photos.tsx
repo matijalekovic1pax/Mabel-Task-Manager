@@ -20,6 +20,24 @@ type Props = {
   isAdmin: boolean
 }
 
+type ImageSize = {
+  width: number
+  height: number
+}
+
+function fitImageSize(imageSize: ImageSize | null, viewportSize: ImageSize): ImageSize | null {
+  if (!imageSize || viewportSize.width <= 0 || viewportSize.height <= 0) return null
+
+  const maxWidth = Math.max(280, viewportSize.width - 48)
+  const maxHeight = Math.max(240, viewportSize.height - 132)
+  const scale = Math.min(maxWidth / imageSize.width, maxHeight / imageSize.height)
+
+  return {
+    width: Math.round(imageSize.width * scale),
+    height: Math.round(imageSize.height * scale),
+  }
+}
+
 export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props) {
   const [attachments, setAttachments] = useState<TaskAttachment[]>([])
   const [urls, setUrls] = useState<Record<string, string>>({})
@@ -27,6 +45,8 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
   const [uploading, setUploading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [imageSizes, setImageSizes] = useState<Record<string, ImageSize>>({})
+  const [viewportSize, setViewportSize] = useState<ImageSize>({ width: 0, height: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -75,6 +95,45 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [attachments.length, selectedIndex])
 
+  const selectedAttachment = selectedIndex === null ? null : attachments[selectedIndex] ?? null
+  const selectedUrl = selectedAttachment ? urls[selectedAttachment.id] : null
+  const selectedImageSize = selectedAttachment ? imageSizes[selectedAttachment.id] ?? null : null
+  const fittedImageSize = fitImageSize(selectedImageSize, viewportSize)
+  const canGoPrevious = selectedIndex !== null && selectedIndex > 0
+  const canGoNext = selectedIndex !== null && selectedIndex < attachments.length - 1
+
+  useEffect(() => {
+    if (!selectedAttachment) return
+
+    function updateViewportSize() {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight })
+    }
+
+    updateViewportSize()
+    window.addEventListener('resize', updateViewportSize)
+    return () => window.removeEventListener('resize', updateViewportSize)
+  }, [selectedAttachment])
+
+  useEffect(() => {
+    if (!selectedAttachment || !selectedUrl || selectedImageSize) return
+
+    let cancelled = false
+    const image = new window.Image()
+    image.onload = () => {
+      if (cancelled) return
+      setImageSizes((sizes) => ({
+        ...sizes,
+        [selectedAttachment.id]: {
+          width: image.naturalWidth || image.width,
+          height: image.naturalHeight || image.height,
+        },
+      }))
+    }
+    image.src = selectedUrl
+
+    return () => { cancelled = true }
+  }, [selectedAttachment, selectedImageSize, selectedUrl])
+
   const remaining = MAX_PHOTOS_PER_TASK - attachments.length
 
   async function onFilesSelected(files: FileList | null) {
@@ -115,11 +174,6 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
 
   const showEmpty = !loading && attachments.length === 0
   if (!canUpload && attachments.length === 0 && !loading) return null
-
-  const selectedAttachment = selectedIndex === null ? null : attachments[selectedIndex] ?? null
-  const selectedUrl = selectedAttachment ? urls[selectedAttachment.id] : null
-  const canGoPrevious = selectedIndex !== null && selectedIndex > 0
-  const canGoNext = selectedIndex !== null && selectedIndex < attachments.length - 1
 
   return (
     <>
@@ -206,19 +260,33 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
       <Dialog open={!!selectedAttachment} onOpenChange={(open) => { if (!open) setSelectedIndex(null) }}>
         <DialogContent
           showCloseButton={false}
-          className="h-[100dvh] w-screen max-w-none gap-0 overflow-hidden rounded-none border-0 bg-black/95 p-0 text-white shadow-none"
+          className="w-auto max-w-none gap-0 overflow-hidden border-0 bg-zinc-950 p-0 text-white shadow-2xl"
         >
           <DialogTitle className="sr-only">Photo preview</DialogTitle>
           <DialogDescription className="sr-only">
             Browse task photos with previous and next controls.
           </DialogDescription>
 
-          <div className="relative flex h-full w-full items-center justify-center p-3 sm:p-6">
+          <div
+            className="relative flex items-center justify-center bg-black"
+            style={fittedImageSize ? { width: fittedImageSize.width, height: fittedImageSize.height } : { width: 'min(96vw, 1280px)', height: 'min(76dvh, 860px)' }}
+          >
             {selectedUrl ? (
               <img
                 src={selectedUrl}
                 alt={selectedAttachment?.file_name ?? 'Task photo'}
-                className="block max-h-[calc(100dvh-1.5rem)] max-w-[calc(100vw-1.5rem)] object-contain sm:max-h-[calc(100dvh-3rem)] sm:max-w-[calc(100vw-3rem)]"
+                className="block h-full w-full object-contain"
+                onLoad={(event) => {
+                  if (!selectedAttachment) return
+                  const image = event.currentTarget
+                  setImageSizes((sizes) => sizes[selectedAttachment.id] ? sizes : {
+                    ...sizes,
+                    [selectedAttachment.id]: {
+                      width: image.naturalWidth || image.width,
+                      height: image.naturalHeight || image.height,
+                    },
+                  })
+                }}
               />
             ) : (
               <Loader2 className="h-6 w-6 animate-spin text-white/70" />
@@ -229,7 +297,7 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="absolute right-3 top-3 bg-black/60 text-white hover:bg-white/15 hover:text-white sm:right-6 sm:top-6"
+                className="absolute right-3 top-3 bg-black/60 text-white hover:bg-white/15 hover:text-white"
                 aria-label="Close photo preview"
               >
                 <X className="h-4 w-4" />
@@ -244,7 +312,7 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
                   variant="ghost"
                   disabled={!canGoPrevious}
                   onClick={() => setSelectedIndex((index) => (index === null ? index : Math.max(0, index - 1)))}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30 sm:left-6"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
                   aria-label="Previous photo"
                 >
                   <ChevronLeft className="h-5 w-5" />
@@ -255,29 +323,30 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
                   variant="ghost"
                   disabled={!canGoNext}
                   onClick={() => setSelectedIndex((index) => (index === null ? index : Math.min(attachments.length - 1, index + 1)))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30 sm:right-6"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
                   aria-label="Next photo"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </>
             )}
-            <div className="absolute bottom-3 left-3 right-3 flex flex-col gap-3 rounded-md bg-black/65 px-4 py-3 backdrop-blur-sm sm:bottom-6 sm:left-6 sm:right-6 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-white">{selectedAttachment?.file_name}</p>
-                <p className="text-xs text-white/60">
-                  {selectedIndex === null ? 0 : selectedIndex + 1} of {attachments.length}
-                </p>
-              </div>
-              {selectedUrl && (
-                <Button asChild size="sm" variant="ghost" className="justify-start text-white hover:bg-white/10 hover:text-white sm:justify-center">
-                  <a href={selectedUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4" />
-                    Open original
-                  </a>
-                </Button>
-              )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-white/10 bg-zinc-950 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-white">{selectedAttachment?.file_name}</p>
+              <p className="text-xs text-white/60">
+                {selectedIndex === null ? 0 : selectedIndex + 1} of {attachments.length}
+              </p>
             </div>
+            {selectedUrl && (
+              <Button asChild size="sm" variant="ghost" className="justify-start text-white hover:bg-white/10 hover:text-white sm:justify-center">
+                <a href={selectedUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                  Open original
+                </a>
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

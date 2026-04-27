@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, ExternalLink, ImagePlus, Loader2, Trash2, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import {
   MAX_PHOTOS_PER_TASK,
@@ -25,16 +24,27 @@ type ImageSize = {
   height: number
 }
 
+const LIGHTBOX_MARGIN = 24
+const LIGHTBOX_FOOTER_HEIGHT = 64
+
 function fitImageSize(imageSize: ImageSize | null, viewportSize: ImageSize): ImageSize | null {
   if (!imageSize || viewportSize.width <= 0 || viewportSize.height <= 0) return null
 
-  const maxWidth = Math.max(280, viewportSize.width - 48)
-  const maxHeight = Math.max(240, viewportSize.height - 132)
-  const scale = Math.min(maxWidth / imageSize.width, maxHeight / imageSize.height)
+  const maxWidth = Math.max(120, viewportSize.width - LIGHTBOX_MARGIN * 2)
+  const maxHeight = Math.max(120, viewportSize.height - LIGHTBOX_MARGIN * 2 - LIGHTBOX_FOOTER_HEIGHT)
+  const ratio = imageSize.width / imageSize.height
+
+  let width = maxWidth
+  let height = width / ratio
+
+  if (height > maxHeight) {
+    height = maxHeight
+    width = height * ratio
+  }
 
   return {
-    width: Math.round(imageSize.width * scale),
-    height: Math.round(imageSize.height * scale),
+    width: Math.round(width),
+    height: Math.round(height),
   }
 }
 
@@ -89,6 +99,9 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
       if (event.key === 'ArrowRight') {
         setSelectedIndex((index) => (index === null ? index : Math.min(attachments.length - 1, index + 1)))
       }
+      if (event.key === 'Escape') {
+        setSelectedIndex(null)
+      }
     }
 
     window.addEventListener('keydown', onKeyDown)
@@ -133,6 +146,32 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
 
     return () => { cancelled = true }
   }, [selectedAttachment, selectedImageSize, selectedUrl])
+
+  useEffect(() => {
+    if (!selectedAttachment) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [selectedAttachment])
+
+  const rememberImageSize = useCallback((id: string, image: HTMLImageElement) => {
+    const nextSize = {
+      width: image.naturalWidth || image.width,
+      height: image.naturalHeight || image.height,
+    }
+
+    if (nextSize.width <= 0 || nextSize.height <= 0) return
+
+    setImageSizes((sizes) => {
+      const current = sizes[id]
+      if (current?.width === nextSize.width && current.height === nextSize.height) return sizes
+      return { ...sizes, [id]: nextSize }
+    })
+  }, [])
 
   const remaining = MAX_PHOTOS_PER_TASK - attachments.length
 
@@ -231,6 +270,7 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
                           alt={a.file_name}
                           className="h-full w-full object-cover transition group-hover:scale-[1.02]"
                           loading="lazy"
+                          onLoad={(event) => rememberImageSize(a.id, event.currentTarget)}
                         />
                       </button>
                     ) : (
@@ -257,99 +297,105 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
         </CardContent>
       </Card>
 
-      <Dialog open={!!selectedAttachment} onOpenChange={(open) => { if (!open) setSelectedIndex(null) }}>
-        <DialogContent
-          showCloseButton={false}
-          className="w-auto max-w-none gap-0 overflow-hidden border-0 bg-zinc-950 p-0 text-white shadow-2xl"
+      {selectedAttachment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo preview"
+          onClick={() => setSelectedIndex(null)}
         >
-          <DialogTitle className="sr-only">Photo preview</DialogTitle>
-          <DialogDescription className="sr-only">
-            Browse task photos with previous and next controls.
-          </DialogDescription>
-
           <div
-            className="relative flex items-center justify-center bg-black"
-            style={fittedImageSize ? { width: fittedImageSize.width, height: fittedImageSize.height } : { width: 'min(96vw, 1280px)', height: 'min(76dvh, 860px)' }}
+            className="overflow-hidden rounded-md bg-zinc-950 text-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
           >
-            {selectedUrl ? (
-              <img
-                src={selectedUrl}
-                alt={selectedAttachment?.file_name ?? 'Task photo'}
-                className="block h-full w-full object-contain"
-                onLoad={(event) => {
-                  if (!selectedAttachment) return
-                  const image = event.currentTarget
-                  setImageSizes((sizes) => sizes[selectedAttachment.id] ? sizes : {
-                    ...sizes,
-                    [selectedAttachment.id]: {
-                      width: image.naturalWidth || image.width,
-                      height: image.naturalHeight || image.height,
-                    },
-                  })
-                }}
-              />
-            ) : (
-              <Loader2 className="h-6 w-6 animate-spin text-white/70" />
-            )}
+            <div
+              className="relative flex items-center justify-center bg-black"
+              style={fittedImageSize ? { width: fittedImageSize.width, height: fittedImageSize.height } : { width: 360, height: 240 }}
+            >
+              {selectedUrl ? (
+                fittedImageSize ? (
+                  <img
+                    src={selectedUrl}
+                    alt={selectedAttachment.file_name}
+                    width={fittedImageSize.width}
+                    height={fittedImageSize.height}
+                    className="block"
+                    onLoad={(event) => rememberImageSize(selectedAttachment.id, event.currentTarget)}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-white/70" />
+                    <img
+                      src={selectedUrl}
+                      alt=""
+                      className="sr-only"
+                      onLoad={(event) => rememberImageSize(selectedAttachment.id, event.currentTarget)}
+                    />
+                  </div>
+                )
+              ) : (
+                <Loader2 className="h-6 w-6 animate-spin text-white/70" />
+              )}
 
-            <DialogClose asChild>
               <Button
                 type="button"
                 size="icon"
                 variant="ghost"
                 className="absolute right-3 top-3 bg-black/60 text-white hover:bg-white/15 hover:text-white"
+                onClick={() => setSelectedIndex(null)}
                 aria-label="Close photo preview"
               >
                 <X className="h-4 w-4" />
               </Button>
-            </DialogClose>
 
-            {attachments.length > 1 && (
-              <>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  disabled={!canGoPrevious}
-                  onClick={() => setSelectedIndex((index) => (index === null ? index : Math.max(0, index - 1)))}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
-                  aria-label="Previous photo"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  disabled={!canGoNext}
-                  onClick={() => setSelectedIndex((index) => (index === null ? index : Math.min(attachments.length - 1, index + 1)))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
-                  aria-label="Next photo"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-white/10 bg-zinc-950 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">{selectedAttachment?.file_name}</p>
-              <p className="text-xs text-white/60">
-                {selectedIndex === null ? 0 : selectedIndex + 1} of {attachments.length}
-              </p>
+              {attachments.length > 1 && (
+                <>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    disabled={!canGoPrevious}
+                    onClick={() => setSelectedIndex((index) => (index === null ? index : Math.max(0, index - 1)))}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    disabled={!canGoNext}
+                    onClick={() => setSelectedIndex((index) => (index === null ? index : Math.min(attachments.length - 1, index + 1)))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
             </div>
-            {selectedUrl && (
-              <Button asChild size="sm" variant="ghost" className="justify-start text-white hover:bg-white/10 hover:text-white sm:justify-center">
-                <a href={selectedUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                  Open original
-                </a>
-              </Button>
-            )}
+
+            <div className="flex h-16 items-center justify-between gap-4 border-t border-white/10 px-4">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">{selectedAttachment.file_name}</p>
+                <p className="text-xs text-white/60">
+                  {selectedIndex === null ? 0 : selectedIndex + 1} of {attachments.length}
+                </p>
+              </div>
+              {selectedUrl && (
+                <Button asChild size="sm" variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
+                  <a href={selectedUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    Open original
+                  </a>
+                </Button>
+              )}
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </>
   )
 }

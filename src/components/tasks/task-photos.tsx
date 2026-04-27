@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ImagePlus, Loader2, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ExternalLink, ImagePlus, Loader2, Trash2, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import {
   MAX_PHOTOS_PER_TASK,
@@ -25,6 +26,7 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -45,6 +47,33 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
   }, [taskId])
 
   useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    if (selectedIndex === null) return
+    if (attachments.length === 0) {
+      setSelectedIndex(null)
+      return
+    }
+    if (selectedIndex > attachments.length - 1) {
+      setSelectedIndex(attachments.length - 1)
+    }
+  }, [attachments.length, selectedIndex])
+
+  useEffect(() => {
+    if (selectedIndex === null) return
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'ArrowLeft') {
+        setSelectedIndex((index) => (index === null ? index : Math.max(0, index - 1)))
+      }
+      if (event.key === 'ArrowRight') {
+        setSelectedIndex((index) => (index === null ? index : Math.min(attachments.length - 1, index + 1)))
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [attachments.length, selectedIndex])
 
   const remaining = MAX_PHOTOS_PER_TASK - attachments.length
 
@@ -87,80 +116,172 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
   const showEmpty = !loading && attachments.length === 0
   if (!canUpload && attachments.length === 0 && !loading) return null
 
+  const selectedAttachment = selectedIndex === null ? null : attachments[selectedIndex] ?? null
+  const selectedUrl = selectedAttachment ? urls[selectedAttachment.id] : null
+  const canGoPrevious = selectedIndex !== null && selectedIndex > 0
+  const canGoNext = selectedIndex !== null && selectedIndex < attachments.length - 1
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">
-          Photos <span className="text-xs font-normal text-muted-foreground">({attachments.length}/{MAX_PHOTOS_PER_TASK})</span>
-        </CardTitle>
-        {canUpload && (
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={(e) => onFilesSelected(e.target.files)}
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={uploading || remaining <= 0}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-              {remaining <= 0 ? 'Limit reached' : 'Add photos'}
-            </Button>
-          </>
-        )}
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading photos…
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">
+            Photos <span className="text-xs font-normal text-muted-foreground">({attachments.length}/{MAX_PHOTOS_PER_TASK})</span>
+          </CardTitle>
+          {canUpload && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => onFilesSelected(e.target.files)}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={uploading || remaining <= 0}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                {remaining <= 0 ? 'Limit reached' : 'Add photos'}
+              </Button>
+            </>
+          )}
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading photos…
+            </div>
+          ) : showEmpty ? (
+            <p className="text-sm text-muted-foreground">No photos yet.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {attachments.map((a, index) => {
+                const url = urls[a.id]
+                const canDelete = isAdmin || a.uploaded_by === currentUserId
+                const isDeleting = deletingId === a.id
+                return (
+                  <div key={a.id} className="group relative aspect-square overflow-hidden rounded-md border bg-muted">
+                    {url ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedIndex(index)}
+                        className="block h-full w-full cursor-zoom-in text-left"
+                        aria-label={`Open photo ${index + 1} of ${attachments.length}: ${a.file_name}`}
+                      >
+                        <img
+                          src={url}
+                          alt={a.file_name}
+                          className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                          loading="lazy"
+                        />
+                      </button>
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={() => onDelete(a)}
+                        disabled={isDeleting}
+                        className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100 disabled:opacity-50"
+                        aria-label="Delete photo"
+                      >
+                        {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!selectedAttachment} onOpenChange={(open) => { if (!open) setSelectedIndex(null) }}>
+        <DialogContent
+          showCloseButton={false}
+          className="max-h-[92vh] w-[min(94vw,920px)] max-w-none gap-0 overflow-hidden border-0 bg-zinc-950 p-0 text-white shadow-2xl"
+        >
+          <DialogTitle className="sr-only">Photo preview</DialogTitle>
+          <DialogDescription className="sr-only">
+            Browse task photos with previous and next controls.
+          </DialogDescription>
+
+          <div className="relative flex min-h-[320px] items-center justify-center bg-black sm:min-h-[520px]">
+            {selectedUrl ? (
+              <img
+                src={selectedUrl}
+                alt={selectedAttachment?.file_name ?? 'Task photo'}
+                className="max-h-[72vh] w-full object-contain"
+              />
+            ) : (
+              <Loader2 className="h-6 w-6 animate-spin text-white/70" />
+            )}
+
+            <DialogClose asChild>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="absolute right-3 top-3 bg-black/45 text-white hover:bg-white/15 hover:text-white"
+                aria-label="Close photo preview"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
+
+            {attachments.length > 1 && (
+              <>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  disabled={!canGoPrevious}
+                  onClick={() => setSelectedIndex((index) => (index === null ? index : Math.max(0, index - 1)))}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/45 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  disabled={!canGoNext}
+                  onClick={() => setSelectedIndex((index) => (index === null ? index : Math.min(attachments.length - 1, index + 1)))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/45 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </>
+            )}
           </div>
-        ) : showEmpty ? (
-          <p className="text-sm text-muted-foreground">No photos yet.</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {attachments.map((a) => {
-              const url = urls[a.id]
-              const canDelete = isAdmin || a.uploaded_by === currentUserId
-              const isDeleting = deletingId === a.id
-              return (
-                <div key={a.id} className="group relative aspect-square overflow-hidden rounded-md border bg-muted">
-                  {url ? (
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
-                      <img
-                        src={url}
-                        alt={a.file_name}
-                        className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                        loading="lazy"
-                      />
-                    </a>
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    </div>
-                  )}
-                  {canDelete && (
-                    <button
-                      type="button"
-                      onClick={() => onDelete(a)}
-                      disabled={isDeleting}
-                      className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100 disabled:opacity-50"
-                      aria-label="Delete photo"
-                    >
-                      {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </button>
-                  )}
-                </div>
-              )
-            })}
+
+          <div className="flex flex-col gap-3 border-t border-white/10 bg-zinc-950 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-white">{selectedAttachment?.file_name}</p>
+              <p className="text-xs text-white/60">
+                {selectedIndex === null ? 0 : selectedIndex + 1} of {attachments.length}
+              </p>
+            </div>
+            {selectedUrl && (
+              <Button asChild size="sm" variant="ghost" className="justify-start text-white hover:bg-white/10 hover:text-white sm:justify-center">
+                <a href={selectedUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                  Open original
+                </a>
+              </Button>
+            )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

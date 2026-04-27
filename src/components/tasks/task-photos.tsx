@@ -206,19 +206,19 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
       <Dialog open={!!selectedAttachment} onOpenChange={(open) => { if (!open) setSelectedIndex(null) }}>
         <DialogContent
           showCloseButton={false}
-          className="w-fit max-w-[calc(100vw-1rem)] gap-0 overflow-hidden border-0 bg-zinc-950 p-0 text-white shadow-2xl"
+          className="h-[100dvh] w-screen max-w-none gap-0 overflow-hidden rounded-none border-0 bg-black/95 p-0 text-white shadow-none"
         >
           <DialogTitle className="sr-only">Photo preview</DialogTitle>
           <DialogDescription className="sr-only">
             Browse task photos with previous and next controls.
           </DialogDescription>
 
-          <div className="relative flex min-h-24 min-w-[min(92vw,320px)] items-center justify-center bg-black">
+          <div className="relative flex h-full w-full items-center justify-center p-3 sm:p-6">
             {selectedUrl ? (
               <img
                 src={selectedUrl}
                 alt={selectedAttachment?.file_name ?? 'Task photo'}
-                className="block h-auto max-h-[calc(96vh-72px)] w-auto max-w-[calc(100vw-1rem)] object-contain"
+                className="block max-h-[calc(100dvh-1.5rem)] max-w-[calc(100vw-1.5rem)] object-contain sm:max-h-[calc(100dvh-3rem)] sm:max-w-[calc(100vw-3rem)]"
               />
             ) : (
               <Loader2 className="h-6 w-6 animate-spin text-white/70" />
@@ -229,7 +229,7 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="absolute right-3 top-3 bg-black/45 text-white hover:bg-white/15 hover:text-white"
+                className="absolute right-3 top-3 bg-black/60 text-white hover:bg-white/15 hover:text-white sm:right-6 sm:top-6"
                 aria-label="Close photo preview"
               >
                 <X className="h-4 w-4" />
@@ -244,7 +244,7 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
                   variant="ghost"
                   disabled={!canGoPrevious}
                   onClick={() => setSelectedIndex((index) => (index === null ? index : Math.max(0, index - 1)))}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/45 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30 sm:left-6"
                   aria-label="Previous photo"
                 >
                   <ChevronLeft className="h-5 w-5" />
@@ -255,30 +255,29 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
                   variant="ghost"
                   disabled={!canGoNext}
                   onClick={() => setSelectedIndex((index) => (index === null ? index : Math.min(attachments.length - 1, index + 1)))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/45 text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-white/15 hover:text-white disabled:opacity-30 sm:right-6"
                   aria-label="Next photo"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </>
             )}
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-white/10 bg-zinc-950 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">{selectedAttachment?.file_name}</p>
-              <p className="text-xs text-white/60">
-                {selectedIndex === null ? 0 : selectedIndex + 1} of {attachments.length}
-              </p>
+            <div className="absolute bottom-3 left-3 right-3 flex flex-col gap-3 rounded-md bg-black/65 px-4 py-3 backdrop-blur-sm sm:bottom-6 sm:left-6 sm:right-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">{selectedAttachment?.file_name}</p>
+                <p className="text-xs text-white/60">
+                  {selectedIndex === null ? 0 : selectedIndex + 1} of {attachments.length}
+                </p>
+              </div>
+              {selectedUrl && (
+                <Button asChild size="sm" variant="ghost" className="justify-start text-white hover:bg-white/10 hover:text-white sm:justify-center">
+                  <a href={selectedUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    Open original
+                  </a>
+                </Button>
+              )}
             </div>
-            {selectedUrl && (
-              <Button asChild size="sm" variant="ghost" className="justify-start text-white hover:bg-white/10 hover:text-white sm:justify-center">
-                <a href={selectedUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                  Open original
-                </a>
-              </Button>
-            )}
           </div>
         </DialogContent>
       </Dialog>

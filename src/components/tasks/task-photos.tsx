@@ -206,19 +206,19 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
       <Dialog open={!!selectedAttachment} onOpenChange={(open) => { if (!open) setSelectedIndex(null) }}>
         <DialogContent
           showCloseButton={false}
-          className="max-h-[92vh] w-[min(94vw,920px)] max-w-none gap-0 overflow-hidden border-0 bg-zinc-950 p-0 text-white shadow-2xl"
+          className="max-h-[96vh] w-[min(98vw,1280px)] max-w-none gap-0 overflow-hidden border-0 bg-zinc-950 p-0 text-white shadow-2xl"
         >
           <DialogTitle className="sr-only">Photo preview</DialogTitle>
           <DialogDescription className="sr-only">
             Browse task photos with previous and next controls.
           </DialogDescription>
 
-          <div className="relative flex min-h-[320px] items-center justify-center bg-black sm:min-h-[520px]">
+          <div className="relative flex h-[82vh] min-h-[380px] items-center justify-center bg-black">
             {selectedUrl ? (
               <img
                 src={selectedUrl}
                 alt={selectedAttachment?.file_name ?? 'Task photo'}
-                className="max-h-[72vh] w-full object-contain"
+                className="h-full w-full object-contain"
               />
             ) : (
               <Loader2 className="h-6 w-6 animate-spin text-white/70" />

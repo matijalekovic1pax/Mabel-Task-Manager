@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, ExternalLink, ImagePlus, Loader2, Trash2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, ExternalLink, ImagePlus, Loader2, Trash2, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -54,6 +54,7 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [imageSizes, setImageSizes] = useState<Record<string, ImageSize>>({})
   const [viewportSize, setViewportSize] = useState<ImageSize>({ width: 0, height: 0 })
@@ -208,6 +209,34 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
       toast.error(err instanceof Error ? err.message : 'Failed to delete photo')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  async function onDownload(attachment: TaskAttachment) {
+    const url = urls[attachment.id]
+    if (!url) {
+      toast.error('Photo is still loading')
+      return
+    }
+
+    setDownloadingId(attachment.id)
+    try {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error('Failed to download photo')
+
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = attachment.file_name || 'task-photo'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to download photo')
+    } finally {
+      setDownloadingId(null)
     }
   }
 
@@ -385,12 +414,25 @@ export function TaskPhotos({ taskId, currentUserId, canUpload, isAdmin }: Props)
                 </p>
               </div>
               {selectedUrl && (
-                <Button asChild size="sm" variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
-                  <a href={selectedUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4" />
-                    Open original
-                  </a>
-                </Button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={downloadingId === selectedAttachment.id}
+                    onClick={() => void onDownload(selectedAttachment)}
+                    className="text-white hover:bg-white/10 hover:text-white"
+                  >
+                    {downloadingId === selectedAttachment.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    Download
+                  </Button>
+                  <Button asChild size="sm" variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
+                    <a href={selectedUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4" />
+                      Open original
+                    </a>
+                  </Button>
+                </div>
               )}
             </div>
           </div>

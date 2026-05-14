@@ -26,8 +26,9 @@ TASK_MANAGER_MCP_PROFILE_EMAIL=you@example.com
 ```
 
 `TASK_MANAGER_MCP_PROFILE_ID` can be used instead of email.
+If neither is set, the server falls back to the first active `super_admin`, then CEO, then active team member profile.
 
-The service-role key is powerful because it bypasses Supabase RLS. Keep this server local/trusted and keep `TASK_MANAGER_MCP_PROFILE_EMAIL` or `TASK_MANAGER_MCP_PROFILE_ID` set so responses are scoped to one active user profile.
+The service-role key is powerful because it bypasses Supabase RLS. Keep this server local/trusted. For the tightest scoping, set `TASK_MANAGER_MCP_PROFILE_EMAIL` or `TASK_MANAGER_MCP_PROFILE_ID`; otherwise the default active-profile fallback above is used.
 
 ## Run
 

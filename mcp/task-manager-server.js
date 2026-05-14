@@ -161,7 +161,7 @@ server.registerTool(
       supabaseUrl: Boolean(getEnv('SUPABASE_URL', 'VITE_SUPABASE_URL')),
       supabaseKey: Boolean(getSupabaseKey()),
       profileId: Boolean(process.env.TASK_MANAGER_MCP_PROFILE_ID),
-      profileEmail: Boolean(process.env.TASK_MANAGER_MCP_PROFILE_EMAIL),
+      profileEmail: Boolean(getEnv('TASK_MANAGER_MCP_PROFILE_EMAIL', 'VITE_SUPER_ADMIN_EMAIL')),
     },
     tools: [
       'get_help_context',
@@ -672,9 +672,11 @@ async function requireProfile(args) {
 
 async function resolveProfile(args = {}) {
   const userId = args.userId ?? process.env.TASK_MANAGER_MCP_PROFILE_ID
-  const userEmail = args.userEmail ?? process.env.TASK_MANAGER_MCP_PROFILE_EMAIL
+  const userEmail = args.userEmail ?? getEnv('TASK_MANAGER_MCP_PROFILE_EMAIL', 'VITE_SUPER_ADMIN_EMAIL')
 
-  if (!userId && !userEmail) return null
+  if (!userId && !userEmail) {
+    return resolveDefaultProfile()
+  }
 
   let query = getSupabase()
     .from('profiles')
@@ -690,6 +692,26 @@ async function resolveProfile(args = {}) {
   const { data, error } = await query.maybeSingle()
   if (error) throw new Error(`Could not resolve profile: ${error.message}`)
   return data
+}
+
+async function resolveDefaultProfile() {
+  const roles = ['super_admin', 'ceo', 'team_member']
+
+  for (const role of roles) {
+    const { data, error } = await getSupabase()
+      .from('profiles')
+      .select('*')
+      .eq('is_active', true)
+      .eq('role', role)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw new Error(`Could not resolve default profile: ${error.message}`)
+    if (data) return data
+  }
+
+  return null
 }
 
 function getSupabase() {

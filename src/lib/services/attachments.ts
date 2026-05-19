@@ -51,6 +51,14 @@ export function getAttachmentTotalSize(attachments: Pick<TaskAttachment, 'file_s
   return attachments.reduce((total, attachment) => total + Number(attachment.file_size), 0)
 }
 
+export function isPhotoAttachment(attachment: Pick<TaskAttachment, 'file_type'>): boolean {
+  return attachment.file_type.toLowerCase().startsWith('image/')
+}
+
+export function isDocumentAttachment(attachment: Pick<TaskAttachment, 'file_type'>): boolean {
+  return !isPhotoAttachment(attachment)
+}
+
 export function getTaskDocumentExtension(fileName: string): string {
   const match = fileName.toLowerCase().match(/\.([a-z0-9]{1,12})$/)
   return match?.[1] ?? ''
@@ -89,14 +97,27 @@ export function assertAttachmentTotalLimit(currentTotalBytes: number, incomingBy
   }
 }
 
-async function assertTaskHasCapacity(taskId: string, incomingBytes: number) {
+async function assertTaskHasDocumentCapacity(taskId: string, incomingBytes: number) {
   const { data, error } = await supabase
     .from('task_attachments')
-    .select('file_size')
+    .select('file_size, file_type')
     .eq('task_id', taskId)
 
   if (error) throw error
-  assertAttachmentTotalLimit(getAttachmentTotalSize(data ?? []), incomingBytes)
+  assertAttachmentTotalLimit(getAttachmentTotalSize((data ?? []).filter(isDocumentAttachment)), incomingBytes)
+}
+
+async function assertTaskHasPhotoRoom(taskId: string) {
+  const { data, error } = await supabase
+    .from('task_attachments')
+    .select('id, file_type')
+    .eq('task_id', taskId)
+
+  if (error) throw error
+  const count = (data ?? []).filter(isPhotoAttachment).length
+  if (count >= MAX_PHOTOS_PER_TASK) {
+    throw new Error(`Up to ${MAX_PHOTOS_PER_TASK} photos per task`)
+  }
 }
 
 function getSafeExtension(fileName: string, fallback = ''): string {
@@ -110,7 +131,7 @@ export async function uploadTaskFile(
   file: File,
 ): Promise<TaskAttachment> {
   assertTaskDocumentFile(file)
-  await assertTaskHasCapacity(taskId, file.size)
+  await assertTaskHasDocumentCapacity(taskId, file.size)
 
   return uploadAttachmentBlob(
     taskId,
@@ -132,8 +153,9 @@ export async function uploadTaskPhoto(
     throw new Error('Only image files are allowed')
   }
 
+  await assertTaskHasPhotoRoom(taskId)
   const blob = await compressImage(file)
-  return uploadAttachmentBlob(taskId, userId, blob, file.name, 'image/jpeg', '.jpg')
+  return uploadAttachmentBlob(taskId, userId, blob, file.name, 'image/jpeg', '.jpg', false)
 }
 
 // Upload an already-compressed blob. Used when photos were staged client-side
@@ -144,7 +166,7 @@ export async function uploadCompressedBlob(
   blob: Blob,
   fileName: string,
 ): Promise<TaskAttachment> {
-  return uploadAttachmentBlob(taskId, userId, blob, fileName, 'image/jpeg', '.jpg')
+  return uploadAttachmentBlob(taskId, userId, blob, fileName, 'image/jpeg', '.jpg', false)
 }
 
 export async function uploadAttachmentBlob(
@@ -160,12 +182,12 @@ export async function uploadAttachmentBlob(
     throw new Error(`${fileName} is empty`)
   }
 
-  if (blob.size > MAX_ATTACHMENT_TOTAL_BYTES) {
-    throw new Error(`${fileName} is too large. Files must fit within the ${MAX_ATTACHMENT_TOTAL_LABEL} task limit.`)
-  }
-
   if (checkCapacity) {
-    await assertTaskHasCapacity(taskId, blob.size)
+    if (blob.size > MAX_ATTACHMENT_TOTAL_BYTES) {
+      throw new Error(`${fileName} is too large. Files must fit within the ${MAX_ATTACHMENT_TOTAL_LABEL} task limit.`)
+    }
+
+    await assertTaskHasDocumentCapacity(taskId, blob.size)
   }
 
   const path = `${taskId}/${crypto.randomUUID()}${extension}`

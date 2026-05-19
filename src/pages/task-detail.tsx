@@ -23,6 +23,7 @@ import { TaskResolutionForm } from '@/components/tasks/task-resolution-form'
 import { TaskDelegationForm } from '@/components/tasks/task-delegation-form'
 import { TaskComments } from '@/components/tasks/task-comments'
 import { GeneralTaskStatusActions } from '@/components/tasks/general-task-status-actions'
+import { TaskPhotos } from '@/components/tasks/task-photos'
 import { TaskAttachments } from '@/components/tasks/task-attachments'
 import { formatDateTime, formatDeadline, formatRelativeTime, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
@@ -223,7 +224,7 @@ export function TaskDetailPage() {
   const overdue = task.deadline ? isOverdue(task.deadline) && !isFinal : false
   const canDelete = isSuperAdmin(effectiveRole) || profile?.id === task.submitted_by
 
-  const canUploadFiles = !isFinal && !!profile && (
+  const canUploadAttachments = !isFinal && !!profile && (
     isGeneralTask
       ? (isGeneralCreator || isGeneralAssignee || isAdmin)
       : (profile.id === task.submitted_by || profile.id === task.assigned_to || isCeo(effectiveRole) || isAdmin)
@@ -494,12 +495,20 @@ export function TaskDetailPage() {
       </div>
 
       {profile && (
-        <TaskAttachments
-          taskId={task.id}
-          currentUserId={profile.id}
-          canUpload={canUploadFiles}
-          isAdmin={isAdmin}
-        />
+        <>
+          <TaskPhotos
+            taskId={task.id}
+            currentUserId={profile.id}
+            canUpload={canUploadAttachments}
+            isAdmin={isAdmin}
+          />
+          <TaskAttachments
+            taskId={task.id}
+            currentUserId={profile.id}
+            canUpload={canUploadAttachments}
+            isAdmin={isAdmin}
+          />
+        </>
       )}
 
       <Card>

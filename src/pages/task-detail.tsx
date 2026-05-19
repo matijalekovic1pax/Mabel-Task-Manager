@@ -23,7 +23,7 @@ import { TaskResolutionForm } from '@/components/tasks/task-resolution-form'
 import { TaskDelegationForm } from '@/components/tasks/task-delegation-form'
 import { TaskComments } from '@/components/tasks/task-comments'
 import { GeneralTaskStatusActions } from '@/components/tasks/general-task-status-actions'
-import { TaskPhotos } from '@/components/tasks/task-photos'
+import { TaskAttachments } from '@/components/tasks/task-attachments'
 import { formatDateTime, formatDeadline, formatRelativeTime, isOverdue } from '@/lib/utils/format'
 import { CATEGORY_CONFIG, STATUS_CONFIG } from '@/lib/utils/constants'
 import { ArrowLeft, Calendar, User, Clock, AlertTriangle, ExternalLink, Loader2, History, Trash2, ChevronDown, Users, UserPlus } from 'lucide-react'
@@ -223,7 +223,7 @@ export function TaskDetailPage() {
   const overdue = task.deadline ? isOverdue(task.deadline) && !isFinal : false
   const canDelete = isSuperAdmin(effectiveRole) || profile?.id === task.submitted_by
 
-  const canUploadPhotos = !isFinal && !!profile && (
+  const canUploadFiles = !isFinal && !!profile && (
     isGeneralTask
       ? (isGeneralCreator || isGeneralAssignee || isAdmin)
       : (profile.id === task.submitted_by || profile.id === task.assigned_to || isCeo(effectiveRole) || isAdmin)
@@ -494,10 +494,10 @@ export function TaskDetailPage() {
       </div>
 
       {profile && (
-        <TaskPhotos
+        <TaskAttachments
           taskId={task.id}
           currentUserId={profile.id}
-          canUpload={canUploadPhotos}
+          canUpload={canUploadFiles}
           isAdmin={isAdmin}
         />
       )}

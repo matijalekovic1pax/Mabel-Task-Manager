@@ -262,14 +262,14 @@ function TaskRow({
 
   const inner = (
     <div className={cn(
-      'group flex min-h-[136px] flex-col gap-3 px-3.5 py-3.5 transition-colors duration-150 md:px-4',
+      'group flex min-h-[136px] flex-col gap-3 px-3.5 py-3.5 transition-colors duration-150 md:min-h-[96px] md:flex-row md:items-stretch md:gap-4 md:px-4',
       PRIORITY_STRIPE[task.priority],
       overdue        && 'bg-red-50/45',
       task.priority === 'urgent' && !overdue && !isFinal && 'bg-orange-50/25',
       isFinal        && 'opacity-55',
       'hover:bg-accent/45 cursor-pointer',
     )}>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 md:w-52 md:shrink-0 md:flex-col md:justify-start">
         <div className="flex min-w-0 items-center gap-2">
           <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md border', stage.tone)}>
             <StageIcon className="h-3.5 w-3.5" />
@@ -304,7 +304,7 @@ function TaskRow({
         </span>
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 md:py-0.5">
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
           <TaskStatusBadge status={task.status} />
           <TaskPriorityBadge priority={task.priority} />
@@ -331,7 +331,7 @@ function TaskRow({
         </div>
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/45 pt-2">
+      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/45 pt-2 md:mt-0 md:w-52 md:shrink-0 md:flex-col md:items-end md:border-l md:border-t-0 md:pl-4 md:pt-0">
         {task.deadline && (
           <span className={cn(
             'flex min-w-0 items-center gap-1 text-xs',
@@ -841,40 +841,42 @@ export function TasksPage() {
           </div>
         </div>
 
-        <div className="grid divide-y md:grid-cols-5 md:divide-x md:divide-y-0">
+        <div className="divide-y">
           {stageGroups.map(stage => {
             const StageIcon = stage.icon
             return (
-              <div key={stage.id} className="min-w-0 p-3">
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={cn('h-2 w-2 rounded-full', stage.dot)} />
-                      <h2 className="truncate text-sm font-semibold">{stage.label}</h2>
+              <div key={stage.id} className="min-w-0 p-3 md:p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border', stage.tone)}>
+                      <StageIcon className="h-4 w-4" />
                     </div>
-                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{stage.description}</p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={cn('h-2 w-2 rounded-full', stage.dot)} />
+                        <h2 className="truncate text-sm font-semibold md:text-base">{stage.label}</h2>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">{stage.description}</p>
+                    </div>
                   </div>
-                  <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-md border', stage.tone)}>
-                    <StageIcon className="h-4 w-4" />
-                  </div>
-                </div>
 
-                <div className="mb-3 flex items-center justify-between rounded-md bg-muted/55 px-2 py-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/55">
-                    {stage.tasks.length} {stage.tasks.length === 1 ? 'task' : 'tasks'}
-                  </span>
-                  <span className="text-[10px] font-medium text-muted-foreground/55">
-                    {stage.tasks.filter(t => ['urgent', 'high'].includes(t.priority)).length} high+
-                  </span>
+                  <div className="flex items-center justify-between gap-3 rounded-md bg-muted/55 px-2.5 py-1.5 md:min-w-52">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/55">
+                      {stage.tasks.length} {stage.tasks.length === 1 ? 'task' : 'tasks'}
+                    </span>
+                    <span className="text-[10px] font-medium text-muted-foreground/55">
+                      {stage.tasks.filter(t => ['urgent', 'high'].includes(t.priority)).length} high+
+                    </span>
+                  </div>
                 </div>
 
                 {stage.tasks.length === 0 ? (
-                  <div className="flex min-h-[136px] flex-col items-center justify-center rounded-lg border border-dashed px-3 py-6 text-center">
-                    <Circle className="h-4 w-4 text-muted-foreground/35" />
-                    <p className="mt-2 text-xs text-muted-foreground">No tasks in this stage.</p>
+                  <div className="mt-3 flex min-h-16 items-center justify-center rounded-lg border border-dashed px-3 py-5 text-center">
+                    <Circle className="mr-2 h-4 w-4 text-muted-foreground/35" />
+                    <p className="text-xs text-muted-foreground">No tasks in this stage.</p>
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border bg-background/45">
+                  <div className="mt-3 overflow-hidden rounded-lg border bg-background/45">
                     {stage.tasks.map(task => (
                       <TaskRow
                         key={task.id}
@@ -943,7 +945,7 @@ export function TasksPage() {
             <span className="ml-0.5 tabular-nums">({finishedTasks.length})</span>
           </button>
           {showFinished && (
-            <div className="mt-1 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-1 space-y-3">
               {finishedTasks.map(task => (
                 <div key={task.id} className="overflow-hidden rounded-xl border bg-card">
                   <TaskRow

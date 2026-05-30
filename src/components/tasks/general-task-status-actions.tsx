@@ -59,16 +59,18 @@ const ACTIONS_BY_STATUS: Record<string, GeneralTaskAction[]> = {
   done:        ['reopen'],
 }
 
-// Who is allowed to perform each action (admin always allowed).
+// Who is allowed to perform each action. Review decisions deliberately do not
+// get an admin bypass: an assignee should never be able to approve their own submission.
 const ASSIGNEE_ACTIONS = new Set<GeneralTaskAction>(['start', 'send_for_review', 'complete', 'block', 'resume'])
 const CREATOR_ACTIONS  = new Set<GeneralTaskAction>(['approve_close', 'send_back', 'reopen', 'cancel'])
+const REVIEW_DECISION_ACTIONS = new Set<GeneralTaskAction>(['approve_close', 'send_back'])
 
 // Short descriptor of what the current status means / who's expected to act.
 const STATUS_DESCRIPTION: Record<string, string> = {
   todo:        'Waiting to be picked up by an assignee.',
   in_progress: 'Work is underway.',
   blocked:     'Stuck — needs attention to unblock.',
-  in_review:   'Submitted to the creator for review.',
+  in_review:   'Submitted for review.',
   done:        'Task is complete. Creator can reopen if changes are needed.',
 }
 
@@ -76,11 +78,19 @@ type Props = {
   task: TaskWithDetails
   isCreator: boolean
   isAssignee: boolean
+  isReviewer: boolean
   isAdmin: boolean
   onTransitioned: () => void | Promise<void>
 }
 
-export function GeneralTaskStatusActions({ task, isCreator, isAssignee, isAdmin, onTransitioned }: Props) {
+export function GeneralTaskStatusActions({
+  task,
+  isCreator,
+  isAssignee,
+  isReviewer,
+  isAdmin,
+  onTransitioned,
+}: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [noteAction, setNoteAction] = useState<GeneralTaskAction | null>(null)
   const [noteValue, setNoteValue] = useState('')
@@ -102,6 +112,7 @@ export function GeneralTaskStatusActions({ task, isCreator, isAssignee, isAdmin,
   const allForStatus = ACTIONS_BY_STATUS[status] ?? []
 
   const canRun = (action: GeneralTaskAction) => {
+    if (REVIEW_DECISION_ACTIONS.has(action)) return isReviewer
     if (isAdmin) return true
     if (ASSIGNEE_ACTIONS.has(action)) return isAssignee
     if (CREATOR_ACTIONS.has(action))  return isCreator
@@ -145,8 +156,8 @@ export function GeneralTaskStatusActions({ task, isCreator, isAssignee, isAdmin,
     if (status === 'done') {
       return 'Task is complete. Only the creator can reopen it.'
     }
-    if (status === 'in_review' && isAssignee && !isCreator) {
-      return 'Waiting for the creator to review your submission.'
+    if (status === 'in_review' && isAssignee && !isReviewer) {
+      return 'Waiting for the reviewer to approve your submission.'
     }
     if ((status === 'todo' || status === 'in_progress' || status === 'blocked') && isCreator && !isAssignee) {
       return 'Waiting on the assignee to move this forward.'

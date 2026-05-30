@@ -663,6 +663,8 @@ export type GeneralTaskAction =
 /** Task with the submitter's profile joined. */
 export type TaskWithSubmitter = Task & {
   submitter: Profile
+  /** Loaded for general-task list views so assignees cannot self-review. */
+  assignees?: TaskAssignee[]
 }
 
 /** Fully-loaded task with all related data joined. */

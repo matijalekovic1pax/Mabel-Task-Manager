@@ -111,8 +111,8 @@ const STAGE_ORDER = STAGES.reduce<Record<StageId, number>>((acc, stage, index) =
 type PrimaryActionSpec = {
   action: GeneralTaskAction
   label: string
-  /** Who may perform it: 'assignee' | 'creator'. Admin bypasses this. */
-  role: 'assignee' | 'creator'
+  /** Who may perform it: 'assignee' | 'reviewer'. */
+  role: 'assignee' | 'reviewer'
   className: string
 }
 
@@ -120,7 +120,7 @@ const PRIMARY_ROW_ACTION: Partial<Record<string, PrimaryActionSpec>> = {
   todo:        { action: 'start',         label: 'Start',           role: 'assignee', className: 'border-orange-300 text-orange-700 hover:bg-orange-50' },
   in_progress: { action: 'complete',      label: 'Mark Complete',   role: 'assignee', className: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
   blocked:     { action: 'resume',        label: 'Resume',          role: 'assignee', className: 'border-orange-300 text-orange-700 hover:bg-orange-50' },
-  in_review:   { action: 'approve_close', label: 'Approve & Close', role: 'creator',  className: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
+  in_review:   { action: 'approve_close', label: 'Approve & Close', role: 'reviewer', className: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' },
 }
 
 const PRIORITY_STRIPE: Record<string, string> = {
@@ -244,13 +244,18 @@ function TaskRow({
   const StageIcon = stage.icon
 
   const isCreator = isGeneral && !!currentUserId && task.submitted_by === currentUserId
+  const isAssignee = isGeneral
+    && !!currentUserId
+    && (task.assignees ?? []).some((assignee) => assignee.assignee_id === currentUserId)
+  const isAssigner = isGeneral
+    && !!currentUserId
+    && (task.assignees ?? []).some((assignee) => assignee.assigned_by === currentUserId)
+  const canReview = (isCreator || isAssigner) && !isAssignee
   const primary = isGeneral ? PRIMARY_ROW_ACTION[task.status] : undefined
   const canShowPrimary = !!primary && (
-    isAdmin
-    // Show to creators for creator-role actions; for assignee actions we
-    // optimistically show (server enforces, and the user wouldn't see the row
-    // unless they're relevant to the task).
-    || (primary.role === 'creator' ? isCreator : !isCreator || isAdmin)
+    primary.role === 'reviewer'
+      ? canReview
+      : isAssignee || isAdmin
   )
 
   async function handleClick() {

@@ -218,7 +218,9 @@ export function TaskDetailPage() {
   // General task permissions (fine-grained action gating lives in the actions card)
   const isGeneralCreator = isGeneralTask && profile?.id === task.submitted_by
   const isGeneralAssignee = isGeneralTask && (task.assignees ?? []).some((a) => a.assignee_id === profile?.id)
-  const hasGeneralAccess = isGeneralTask && (isGeneralCreator || isGeneralAssignee || isAdmin)
+  const isGeneralAssigner = isGeneralTask && (task.assignees ?? []).some((a) => a.assigned_by === profile?.id)
+  const isGeneralReviewer = (isGeneralCreator || isGeneralAssigner) && !isGeneralAssignee
+  const hasGeneralAccess = isGeneralTask && (isGeneralCreator || isGeneralAssignee || isGeneralAssigner || isAdmin)
   const canManageAssignees = isGeneralTask && (isGeneralCreator || isAdmin)
 
   const overdue = task.deadline ? isOverdue(task.deadline) && !isFinal : false
@@ -478,6 +480,7 @@ export function TaskDetailPage() {
           task={task}
           isCreator={!!isGeneralCreator}
           isAssignee={!!isGeneralAssignee}
+          isReviewer={!!isGeneralReviewer}
           isAdmin={isAdmin}
           onTransitioned={refresh}
         />

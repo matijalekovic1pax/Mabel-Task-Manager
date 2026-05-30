@@ -77,7 +77,7 @@ export async function getTasks(
 ): Promise<TaskWithSubmitter[]> {
   let query = supabase
     .from('tasks')
-    .select('*, submitter:profiles!tasks_submitted_by_fkey(*)')
+    .select('*, submitter:profiles!tasks_submitted_by_fkey(*), assignees:task_assignees(*)')
 
   // ----- Filters -----
 
@@ -329,7 +329,7 @@ export async function getMyAssignedGeneralTasks(userId: string): Promise<TaskWit
 
   const { data, error } = await supabase
     .from('tasks')
-    .select('*, submitter:profiles!tasks_submitted_by_fkey(*)')
+    .select('*, submitter:profiles!tasks_submitted_by_fkey(*), assignees:task_assignees(*)')
     .eq('task_type', 'general')
     .eq('is_archived', false)
     .in('id', taskIds)
@@ -343,7 +343,7 @@ export async function getMyAssignedGeneralTasks(userId: string): Promise<TaskWit
 export async function getCompanyTasks(filters?: TaskFilters): Promise<TaskWithSubmitter[]> {
   let query = supabase
     .from('tasks')
-    .select('*, submitter:profiles!tasks_submitted_by_fkey(*)')
+    .select('*, submitter:profiles!tasks_submitted_by_fkey(*), assignees:task_assignees(*)')
     .eq('task_type', 'general')
     .eq('visibility', 'company')
     .eq('is_archived', false)
@@ -383,7 +383,7 @@ export async function getCompanyTasks(filters?: TaskFilters): Promise<TaskWithSu
 /**
  * Transition a general task via a named action (server-enforced workflow).
  * The RPC maps each action to its target status, role-gates the caller
- * (assignee vs creator/admin), and requires notes for block/send_back/cancel.
+ * (assignee vs creator/reviewer/admin), and requires notes for block/send_back/cancel.
  */
 export async function transitionGeneralTask(
   taskId: string,

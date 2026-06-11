@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent, type KeyboardEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '@/contexts/auth-context'
 import type { PersonalTodoWithItems, PersonalTodoItem, PersonalTodoLink } from '@/lib/types'
 import {
   getPersonalTodo,
@@ -27,7 +26,7 @@ import {
   X, CalendarDays, Save, ExternalLink, Link2,
 } from 'lucide-react'
 import {
-  StatusIcon, PRIORITY_DOT, PRIORITY_LABEL, STATUS_LABEL,
+  StatusIcon, PRIORITY_DOT,
   parseDateLocal, formatDueLabel, isDueOverdue,
 } from '@/pages/my-todos'
 import { isToday } from 'date-fns'
@@ -42,7 +41,6 @@ type TodoPriority = PersonalTodoWithItems['priority']
 export function MyTodoDetailPage() {
   const { id }     = useParams<{ id: string }>()
   const navigate   = useNavigate()
-  const { user }   = useAuth()
 
   const [todo, setTodo]       = useState<PersonalTodoWithItems | null>(null)
   const [items, setItems]     = useState<PersonalTodoItem[]>([])

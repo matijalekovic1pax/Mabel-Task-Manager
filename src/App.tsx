@@ -14,6 +14,7 @@ const NewTaskPage     = lazy(() => import('@/pages/new-task').then((m) => ({ def
 const TaskDetailPage  = lazy(() => import('@/pages/task-detail').then((m) => ({ default: m.TaskDetailPage })))
 const MyTodosPage       = lazy(() => import('@/pages/my-todos').then((m) => ({ default: m.MyTodosPage })))
 const MyTodoDetailPage  = lazy(() => import('@/pages/my-todo-detail').then((m) => ({ default: m.MyTodoDetailPage })))
+const LinkVaultPage    = lazy(() => import('@/pages/link-vault').then((m) => ({ default: m.LinkVaultPage })))
 const ActivityPage    = lazy(() => import('@/pages/activity').then((m) => ({ default: m.ActivityPage })))
 const SettingsPage    = lazy(() => import('@/pages/settings').then((m) => ({ default: m.SettingsPage })))
 const AdminPage       = lazy(() => import('@/pages/admin').then((m) => ({ default: m.AdminPage })))
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="my-tasks"     element={<Navigate to="/" replace />} />
               <Route path="my-todos"        element={<MyTodosPage />} />
               <Route path="my-todos/:id"   element={<MyTodoDetailPage />} />
+              <Route path="links"          element={<LinkVaultPage />} />
               <Route path="activity"     element={<ActivityPage />} />
               <Route path="settings"     element={<SettingsPage />} />
               <Route path="settings/team" element={<Navigate to="/admin" replace />} />

@@ -2,13 +2,21 @@ import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import { addComment } from '@/lib/services/comments'
+import { addComment, deleteComment } from '@/lib/services/comments'
 import { transitionTask } from '@/lib/services/tasks'
 import { formatRelativeTime } from '@/lib/utils/format'
 import { useAuth } from '@/contexts/auth-context'
 import type { TaskComment, Profile, TaskStatus } from '@/lib/types'
-import { Loader2, MessageSquare } from 'lucide-react'
+import { Loader2, MessageSquare, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 type CommentWithAuthor = TaskComment & { author: Profile }
@@ -32,6 +40,8 @@ export function TaskComments({
   const formRef = useRef<HTMLFormElement>(null)
   const [loading, setLoading] = useState(false)
   const [providingInfo, setProvidingInfo] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<CommentWithAuthor | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const canProvideInfo =
@@ -57,6 +67,23 @@ export function TaskComments({
       setError(err instanceof Error ? err.message : 'Failed to add comment')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDeleteComment() {
+    if (!deleteTarget) return
+
+    setDeleting(true)
+
+    try {
+      await deleteComment(deleteTarget.id)
+      setDeleteTarget(null)
+      toast.success('Comment deleted')
+      onCommentAdded()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete comment')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -89,51 +116,95 @@ export function TaskComments({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />Comments ({comments.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {comments.length > 0 && (
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div key={comment.id}>
-                <div className="mb-1 flex items-center gap-2">
-                  {comment.author.avatar_url ? (
-                    <img src={comment.author.avatar_url} alt={comment.author.full_name} className="h-6 w-6 rounded-full" />
-                  ) : (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                      {comment.author.full_name.charAt(0).toUpperCase()}
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />Comments ({comments.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {comments.length > 0 && (
+            <div className="space-y-4">
+              {comments.map((comment) => {
+                const canDelete = profile?.id === comment.author_id
+
+                return (
+                  <div key={comment.id}>
+                    <div className="mb-1 flex items-center gap-2">
+                      {comment.author.avatar_url ? (
+                        <img src={comment.author.avatar_url} alt={comment.author.full_name} className="h-6 w-6 rounded-full" />
+                      ) : (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                          {comment.author.full_name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-sm font-medium">{comment.author.full_name}</span>
+                      <span className="text-xs text-muted-foreground">{formatRelativeTime(comment.created_at)}</span>
+                      {canDelete && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="ml-auto text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeleteTarget(comment)}
+                          aria-label="Delete comment"
+                          title="Delete comment"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
-                  )}
-                  <span className="text-sm font-medium">{comment.author.full_name}</span>
-                  <span className="text-xs text-muted-foreground">{formatRelativeTime(comment.created_at)}</span>
-                </div>
-                <p className="whitespace-pre-wrap pl-8 text-sm">{comment.content}</p>
-              </div>
-            ))}
-            <Separator />
-          </div>
-        )}
-        {!readOnly && (
-          <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
-            {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
-            <Textarea name="content" placeholder="Add a comment..." required rows={2} />
-            <div className="flex flex-wrap items-center gap-2">
-              <Button type="submit" size="sm" disabled={loading || providingInfo}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Comment
-              </Button>
-              {canProvideInfo && (
-                <Button type="button" size="sm" variant="secondary" disabled={loading || providingInfo} onClick={handleProvideInfo}>
-                  {providingInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Provide Requested Info
-                </Button>
-              )}
+                    <p className="whitespace-pre-wrap pl-8 text-sm">{comment.content}</p>
+                  </div>
+                )
+              })}
+              <Separator />
             </div>
-          </form>
-        )}
-      </CardContent>
-    </Card>
+          )}
+          {!readOnly && (
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
+              {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+              <Textarea name="content" placeholder="Add a comment..." required rows={2} />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="submit" size="sm" disabled={loading || providingInfo}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Comment
+                </Button>
+                {canProvideInfo && (
+                  <Button type="button" size="sm" variant="secondary" disabled={loading || providingInfo} onClick={handleProvideInfo}>
+                    {providingInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Provide Requested Info
+                  </Button>
+                )}
+              </div>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete comment?</DialogTitle>
+            <DialogDescription>
+              This comment will be permanently deleted. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteComment} disabled={deleting}>
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

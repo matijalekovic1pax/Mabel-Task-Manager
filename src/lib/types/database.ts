@@ -522,6 +522,50 @@ export type Database = {
           },
         ]
       }
+      link_vault_items: {
+        Row: {
+          id: string
+          title: string
+          url: string
+          description: string | null
+          resource_type: 'deployment' | 'figma' | 'document' | 'prototype' | 'research' | 'other'
+          created_by: string
+          is_pinned: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          url: string
+          description?: string | null
+          resource_type?: 'deployment' | 'figma' | 'document' | 'prototype' | 'research' | 'other'
+          created_by: string
+          is_pinned?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          url?: string
+          description?: string | null
+          resource_type?: 'deployment' | 'figma' | 'document' | 'prototype' | 'research' | 'other'
+          created_by?: string
+          is_pinned?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'link_vault_items_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -631,11 +675,20 @@ export type PersonalTodoItem = Tables['personal_todo_items']['Row']
 export type PersonalTodoItemInsert = Tables['personal_todo_items']['Insert']
 export type PersonalTodoLink = Tables['personal_todo_links']['Row']
 export type PersonalTodoLinkInsert = Tables['personal_todo_links']['Insert']
+export type LinkVaultItem = Tables['link_vault_items']['Row']
+export type LinkVaultItemInsert = Tables['link_vault_items']['Insert']
+export type LinkVaultItemUpdate = Tables['link_vault_items']['Update']
+export type LinkVaultResourceType = LinkVaultItem['resource_type']
 
 /** A todo with its checklist items and links loaded */
 export type PersonalTodoWithItems = PersonalTodo & {
   items: PersonalTodoItem[]
   links: PersonalTodoLink[]
+}
+
+/** A shared vault link with its creator profile joined. */
+export type LinkVaultItemWithCreator = LinkVaultItem & {
+  creator: Pick<Profile, 'id' | 'full_name' | 'avatar_url' | 'role'> | null
 }
 
 export type TaskAction =

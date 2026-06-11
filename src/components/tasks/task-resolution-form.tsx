@@ -10,14 +10,6 @@ import { Loader2, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { TaskWithDetails } from '@/lib/types'
 
-const ACTION_LABELS: Record<string, string> = {
-  approve: 'Approve',
-  reject: 'Reject',
-  request_info: 'Request More Info',
-  defer: 'Defer',
-  resolve: 'Resolve',
-}
-
 const ACTION_PAST_TENSE: Record<string, string> = {
   approve: 'Task approved',
   reject: 'Task rejected',

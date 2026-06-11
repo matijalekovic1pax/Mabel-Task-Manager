@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, CheckSquare, Plus, Activity, Settings } from 'lucide-react'
+import { LayoutDashboard, CheckSquare, Plus, Activity, Settings, Link2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { to: '/', label: 'Tasks', icon: LayoutDashboard, end: true },
   { to: '/my-todos', label: 'Todos', icon: CheckSquare },
+  { to: '/links', label: 'Links', icon: Link2 },
   { to: '/tasks/new', label: 'New', icon: Plus },
   { to: '/activity', label: 'Activity', icon: Activity },
   { to: '/settings', label: 'Settings', icon: Settings },

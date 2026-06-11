@@ -12,6 +12,20 @@ import type {
 } from '@/lib/types'
 import type { TaskInput, ResolutionInput, DelegationInput, GeneralTaskInput } from '@/lib/validations/task'
 
+async function sendPendingTaskNotificationEmails(taskId: string): Promise<void> {
+  try {
+    const { error } = await supabase.functions.invoke('send-notification-email', {
+      body: { taskId },
+    })
+
+    if (error) {
+      console.warn('Task notification email delivery was not completed:', error.message)
+    }
+  } catch (err) {
+    console.warn('Task notification email delivery was not completed:', err)
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Create a new task
 // ---------------------------------------------------------------------------
@@ -204,6 +218,11 @@ export async function transitionTask(
   })
 
   if (error) throw error
+
+  if (action === 'delegate') {
+    await sendPendingTaskNotificationEmails(taskId)
+  }
+
   return data as Task
 }
 
@@ -284,6 +303,7 @@ export async function createGeneralTask(
     }))
     const { error: assignError } = await supabase.from('task_assignees').insert(rows)
     if (assignError) throw assignError
+    await sendPendingTaskNotificationEmails(task.id)
   }
 
   return task
@@ -412,6 +432,7 @@ export async function addTaskAssignee(
     assigned_by: assignedBy,
   })
   if (error) throw error
+  await sendPendingTaskNotificationEmails(taskId)
 }
 
 /** Remove an assignee from a general task. */

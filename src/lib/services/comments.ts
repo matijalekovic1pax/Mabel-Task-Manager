@@ -23,3 +23,20 @@ export async function addComment(
 
   return comment
 }
+
+// ---------------------------------------------------------------------------
+// Delete a comment (author only, enforced by RLS)
+// ---------------------------------------------------------------------------
+
+export async function deleteComment(commentId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('task_comments')
+    .delete()
+    .eq('id', commentId)
+    .select('id')
+
+  if (error) throw error
+  if (!data || data.length === 0) {
+    throw new Error('Delete failed - you may not have permission to delete this comment.')
+  }
+}

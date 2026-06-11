@@ -34,6 +34,11 @@ export type {
   PersonalTodoLink,
   PersonalTodoLinkInsert,
   PersonalTodoWithItems,
+  LinkVaultItem,
+  LinkVaultItemInsert,
+  LinkVaultItemUpdate,
+  LinkVaultResourceType,
+  LinkVaultItemWithCreator,
 } from './database'
 
 // ---------------------------------------------------------------------------
